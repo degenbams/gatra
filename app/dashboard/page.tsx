@@ -7,13 +7,16 @@ import {
 import { LogoutButton } from "@/components/logout-button";
 import {
   getJakartaMonthYear,
+  getJakartaTodayISO,
   getMonthDateRange,
   getMonthLabel,
+  getRemainingDaysInMonth,
 } from "@/lib/date";
 import { formatRupiah } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import {
   BarChart3,
+  CalendarDays,
   HandCoins,
   PiggyBank,
   Plus,
@@ -92,6 +95,8 @@ export default async function DashboardPage() {
   const transactionRows = ((transactions ?? []) as RawDashboardTransaction[]).map(
     normalizeDashboardTransaction,
   );
+  const todayISO = getJakartaTodayISO();
+  const remainingDays = getRemainingDaysInMonth(todayISO);
   const pemasukanUtama = toFiniteNumber(currentBudget?.income);
   const pemasukanTambahan = (incomeEntries ?? []).reduce(
     (total, entry) => total + toFiniteNumber(entry.amount),
@@ -103,6 +108,12 @@ export default async function DashboardPage() {
     (total, transaction) => total + toFiniteNumber(transaction.amount),
     0,
   );
+  const pengeluaranHariIni = transactionRows
+    .filter((transaction) => transaction.date === todayISO)
+    .reduce(
+      (total, transaction) => total + toFiniteNumber(transaction.amount),
+      0,
+    );
   const transactionCount = transactionRows.length;
   const savingAktual = totalIncome - totalPengeluaran;
   const budgetBelanja = totalIncome - savingTarget;
@@ -110,6 +121,15 @@ export default async function DashboardPage() {
   const statusKeuangan = getFinancialStatus(totalPengeluaran, budgetBelanja);
   const kategoriTerbesar = getTopCategory(transactionRows);
   const savingProgress = getSavingProgress(savingAktual, savingTarget);
+  const dailySafeSpend = getDailySafeSpend({
+    budgetBelanja,
+    hasBudget: Boolean(currentBudget),
+    pengeluaranHariIni,
+    remainingDays,
+    sisaBudgetAman,
+    totalPengeluaran,
+    totalIncome,
+  });
   const categoryExpenseData = getCategoryExpenseData(
     transactionRows,
     totalPengeluaran,
@@ -209,10 +229,14 @@ export default async function DashboardPage() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <DailySafeSpendPanel safeSpend={dailySafeSpend} />
+
           <SavingProgressPanel
             progress={savingProgress}
           />
+        </section>
 
+        <section className="grid gap-6">
           <FinancialStatusPanel
             budgetBelanja={budgetBelanja}
             kategoriTerbesar={kategoriTerbesar}
@@ -308,6 +332,97 @@ export default async function DashboardPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function DailySafeSpendPanel({
+  safeSpend,
+}: {
+  safeSpend: DailySafeSpend;
+}) {
+  const badgeClasses = {
+    amber: "bg-amber-50 text-amber-700 ring-amber-200",
+    blue: "bg-blue-50 text-blue-700 ring-blue-200",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    red: "bg-red-50 text-red-700 ring-red-200",
+    slate: "bg-slate-100 text-slate-700 ring-slate-200",
+  }[safeSpend.tone];
+  const detailClasses = {
+    amber: "border-amber-200 bg-amber-50 text-amber-800",
+    blue: "border-blue-200 bg-blue-50 text-blue-800",
+    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    red: "border-red-200 bg-red-50 text-red-800",
+    slate: "border-slate-200 bg-slate-50 text-slate-700",
+  }[safeSpend.tone];
+  const todayBalance =
+    safeSpend.todayRemaining >= 0
+      ? formatRupiah(safeSpend.todayRemaining)
+      : `Lewat ${formatRupiah(Math.abs(safeSpend.todayRemaining))}`;
+
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)]">
+            <CalendarDays className="size-5" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold">Jatah aman hari ini</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            Batas belanja harian supaya target tabungan tetap aman.
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${badgeClasses}`}
+        >
+          {safeSpend.label}
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-2xl bg-slate-50 p-4">
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">
+            Jatah aman
+          </p>
+          <p className="mt-2 break-words text-3xl font-semibold">
+            {formatRupiah(safeSpend.dailyAllowance)}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+            {safeSpend.headline}
+          </p>
+        </div>
+
+        <div className="grid gap-3">
+          <SafeSpendMetric
+            label="Pengeluaran hari ini"
+            value={formatRupiah(safeSpend.todaySpent)}
+          />
+          <SafeSpendMetric label="Sisa hari ini" value={todayBalance} />
+          <SafeSpendMetric
+            label="Sisa hari bulan ini"
+            value={`${safeSpend.remainingDays} hari`}
+          />
+          <SafeSpendMetric
+            label="Jatah aman besok"
+            value={formatRupiah(safeSpend.nextDailyAllowance)}
+          />
+        </div>
+      </div>
+
+      <p className={`mt-4 rounded-xl border px-4 py-3 text-sm ${detailClasses}`}>
+        {safeSpend.detail}
+      </p>
+    </section>
+  );
+}
+
+function SafeSpendMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-white px-4 py-3">
+      <p className="text-xs font-medium text-[var(--muted-foreground)]">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-semibold">{value}</p>
+    </div>
   );
 }
 
@@ -482,6 +597,18 @@ type FinancialStatus = {
   tone: "amber" | "blue" | "green" | "red" | "slate";
 };
 
+type DailySafeSpend = {
+  dailyAllowance: number;
+  detail: string;
+  headline: string;
+  label: string;
+  nextDailyAllowance: number;
+  remainingDays: number;
+  todayRemaining: number;
+  todaySpent: number;
+  tone: "amber" | "blue" | "green" | "red" | "slate";
+};
+
 type SavingProgress = {
   clampedPercent: number;
   detail: string;
@@ -519,6 +646,156 @@ function getFinancialStatus(
   }
 
   return { label: "Boros", tone: "red" };
+}
+
+function getDailySafeSpend({
+  budgetBelanja,
+  hasBudget,
+  pengeluaranHariIni,
+  remainingDays,
+  sisaBudgetAman,
+  totalPengeluaran,
+  totalIncome,
+}: {
+  budgetBelanja: number;
+  hasBudget: boolean;
+  pengeluaranHariIni: number;
+  remainingDays: number;
+  sisaBudgetAman: number;
+  totalPengeluaran: number;
+  totalIncome: number;
+}): DailySafeSpend {
+  const safeRemainingDays = Math.max(remainingDays, 1);
+  const previousExpense = Math.max(totalPengeluaran - pengeluaranHariIni, 0);
+  const budgetBeforeToday = budgetBelanja - previousExpense;
+  const dailyAllowance = Math.max(budgetBeforeToday / safeRemainingDays, 0);
+  const todayRemaining = dailyAllowance - pengeluaranHariIni;
+  const nextDailyAllowance =
+    safeRemainingDays > 1
+      ? Math.max(sisaBudgetAman / (safeRemainingDays - 1), 0)
+      : 0;
+
+  if (!hasBudget) {
+    return {
+      dailyAllowance: 0,
+      detail:
+        "Isi pemasukan dan target tabungan dulu supaya Gatra bisa menghitung jatah aman harian.",
+      headline: "Budget bulanan belum diatur.",
+      label: "Atur budget",
+      nextDailyAllowance: 0,
+      remainingDays: safeRemainingDays,
+      todayRemaining: 0,
+      todaySpent: pengeluaranHariIni,
+      tone: "slate",
+    };
+  }
+
+  if (totalIncome <= 0) {
+    return {
+      dailyAllowance: 0,
+      detail:
+        "Pemasukan bulan ini masih kosong, jadi belum ada ruang belanja aman yang bisa dihitung.",
+      headline: "Pemasukan belum diisi.",
+      label: "Belum aktif",
+      nextDailyAllowance: 0,
+      remainingDays: safeRemainingDays,
+      todayRemaining: -pengeluaranHariIni,
+      todaySpent: pengeluaranHariIni,
+      tone: "slate",
+    };
+  }
+
+  if (budgetBelanja <= 0) {
+    return {
+      dailyAllowance: 0,
+      detail:
+        "Target tabungan sudah mengambil seluruh pemasukan. Turunkan target atau tambah pemasukan supaya ada ruang belanja.",
+      headline: "Target tabungan terlalu ketat untuk bulan ini.",
+      label: "Target berat",
+      nextDailyAllowance: 0,
+      remainingDays: safeRemainingDays,
+      todayRemaining: -pengeluaranHariIni,
+      todaySpent: pengeluaranHariIni,
+      tone: "red",
+    };
+  }
+
+  if (sisaBudgetAman < 0) {
+    return {
+      dailyAllowance,
+      detail: `Budget aman bulan ini sudah lewat ${formatRupiah(
+        Math.abs(sisaBudgetAman),
+      )}. Pengeluaran berikutnya makin mengurangi target tabungan.`,
+      headline: "Budget aman bulan ini sudah lewat.",
+      label: "Lewat batas",
+      nextDailyAllowance,
+      remainingDays: safeRemainingDays,
+      todayRemaining,
+      todaySpent: pengeluaranHariIni,
+      tone: "red",
+    };
+  }
+
+  if (todayRemaining < 0) {
+    return {
+      dailyAllowance,
+      detail: `Hari ini sudah lewat ${formatRupiah(
+        Math.abs(todayRemaining),
+      )}. Jatah aman besok turun jadi ${formatRupiah(nextDailyAllowance)}.`,
+      headline: "Pengeluaran hari ini sudah melewati jatah aman.",
+      label: "Lewat jatah",
+      nextDailyAllowance,
+      remainingDays: safeRemainingDays,
+      todayRemaining,
+      todaySpent: pengeluaranHariIni,
+      tone: "red",
+    };
+  }
+
+  if (dailyAllowance < 50000) {
+    return {
+      dailyAllowance,
+      detail:
+        "Target masih bisa dikejar, tapi ruang belanja harian lagi tipis. Pakai jatah hari ini dengan hati-hati.",
+      headline: "Jatah aman harian lagi ketat.",
+      label: "Ketat",
+      nextDailyAllowance,
+      remainingDays: safeRemainingDays,
+      todayRemaining,
+      todaySpent: pengeluaranHariIni,
+      tone: "amber",
+    };
+  }
+
+  if (pengeluaranHariIni > 0 && todayRemaining <= dailyAllowance * 0.25) {
+    return {
+      dailyAllowance,
+      detail: `Masih aman ${formatRupiah(
+        todayRemaining,
+      )} untuk hari ini. Setelah itu jatah aman mulai ketarik.`,
+      headline: "Jatah hari ini hampir habis.",
+      label: "Waspada",
+      nextDailyAllowance,
+      remainingDays: safeRemainingDays,
+      todayRemaining,
+      todaySpent: pengeluaranHariIni,
+      tone: "amber",
+    };
+  }
+
+  return {
+    dailyAllowance,
+    detail: `Masih aman ${formatRupiah(
+      todayRemaining,
+    )} untuk hari ini. Kalau tidak dipakai, ruang aman besok tetap longgar.`,
+    headline: "Ruang belanja hari ini masih aman.",
+    label: "Aman",
+    nextDailyAllowance,
+    remainingDays: safeRemainingDays,
+    todayRemaining,
+    todaySpent: pengeluaranHariIni,
+    tone: "green",
+  };
 }
 
 function getTopCategory(transactions: DashboardTransaction[]) {

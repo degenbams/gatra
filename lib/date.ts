@@ -41,6 +41,25 @@ export function getJakartaTodayISO() {
   return `${year}-${month}-${day}`;
 }
 
+export function getRemainingDaysInMonth(dateISO: string) {
+  const [year, month, day] = dateISO.split("-").map(Number);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1
+  ) {
+    return 1;
+  }
+
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return Math.max(daysInMonth - day + 1, 1);
+}
+
 export function getMonthDateRange(month: number, year: number) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const nextMonth = month === 12 ? 1 : month + 1;
