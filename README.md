@@ -31,6 +31,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Do not add or expose a `service_role` key in the frontend.
 
+## Supabase Database Updates
+
+Run `supabase-income-entries.sql` in the Supabase SQL Editor before using the Pemasukan Tambahan feature. The script creates `income_entries`, enables RLS, adds per-user policies, and attaches the `updated_at` trigger.
+
 ## Supabase Auth Setup
 
 ### Development

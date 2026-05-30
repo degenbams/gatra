@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  HandCoins,
   LayoutDashboard,
   ReceiptText,
   Settings2,
@@ -9,7 +10,7 @@ import Link from "next/link";
 type AppNavItem = {
   href: string;
   icon: React.ReactNode;
-  id: "budget" | "dashboard" | "recap" | "transactions";
+  id: "budget" | "dashboard" | "income" | "recap" | "transactions";
   label: string;
 };
 
@@ -25,6 +26,12 @@ const items: AppNavItem[] = [
     icon: <ReceiptText className="size-4" />,
     id: "transactions",
     label: "Transaksi",
+  },
+  {
+    href: "/income",
+    icon: <HandCoins className="size-4" />,
+    id: "income",
+    label: "Pemasukan",
   },
   {
     href: "/recap",
@@ -44,7 +51,7 @@ export function AppNav({ active }: { active: AppNavItem["id"] }) {
   return (
     <nav
       aria-label="Navigasi utama Gatra"
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] sm:grid-cols-4"
+      className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-soft)] sm:grid-cols-5"
     >
       {items.map((item) => {
         const isActive = active === item.id;

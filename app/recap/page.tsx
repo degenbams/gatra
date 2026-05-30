@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Filter,
+  HandCoins,
   ListChecks,
   PiggyBank,
   ReceiptText,
@@ -49,6 +50,14 @@ type RecapTransaction = {
 
 type RawRecapTransaction = Omit<RecapTransaction, "categories"> & {
   categories: CategoryInfo | CategoryInfo[] | null;
+};
+
+type RecapIncomeEntry = {
+  amount: number | string;
+  date: string;
+  id: string;
+  note: string | null;
+  source: string;
 };
 
 const dailyTrackingCategories = [
@@ -87,8 +96,12 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
     (_, index) => currentYear - 5 + index,
   );
 
-  const [{ data: profile }, { data: budget }, { data: transactions }] =
-    await Promise.all([
+  const [
+    { data: profile },
+    { data: budget },
+    { data: incomeEntries },
+    { data: transactions },
+  ] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name")
@@ -102,6 +115,14 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
       .eq("year", selectedYear)
       .maybeSingle(),
     supabase
+      .from("income_entries")
+      .select("id, date, amount, source, note")
+      .eq("user_id", user.id)
+      .gte("date", start)
+      .lt("date", end)
+      .order("date", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
       .from("transactions")
       .select("id, date, amount, note, categories(name, emoji)")
       .eq("user_id", user.id)
@@ -114,17 +135,23 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
   const rows = ((transactions ?? []) as RawRecapTransaction[]).map(
     normalizeRecapTransaction,
   );
-  const income = toFiniteNumber(budget?.income);
+  const incomeRows = (incomeEntries ?? []) as RecapIncomeEntry[];
+  const pemasukanUtama = toFiniteNumber(budget?.income);
+  const pemasukanTambahan = incomeRows.reduce(
+    (total, entry) => total + toFiniteNumber(entry.amount),
+    0,
+  );
+  const totalIncome = pemasukanUtama + pemasukanTambahan;
   const savingTarget = toFiniteNumber(budget?.saving_target);
   const totalPengeluaran = rows.reduce(
     (total, transaction) => total + toFiniteNumber(transaction.amount),
     0,
   );
-  const savingAktual = income - totalPengeluaran;
+  const savingAktual = totalIncome - totalPengeluaran;
   const selisihTargetTabungan = savingAktual - savingTarget;
   const savingRate =
-    income > 0 ? toFiniteNumber((savingAktual / income) * 100) : 0;
-  const budgetBelanja = income - savingTarget;
+    totalIncome > 0 ? toFiniteNumber((savingAktual / totalIncome) * 100) : 0;
+  const budgetBelanja = totalIncome - savingTarget;
   const sisaBudgetAman = budgetBelanja - totalPengeluaran;
   const statusKeuangan = getFinancialStatus(totalPengeluaran, budgetBelanja);
   const kategoriTerbesar = getTopCategory(rows);
@@ -141,9 +168,11 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
     budgetBelanja,
     categoryBreakdown,
     dailyTracking,
-    income,
+    incomeRows,
     kategoriTerbesar,
     periodLabel,
+    pemasukanTambahan,
+    pemasukanUtama,
     rows,
     savingAktual,
     savingRate,
@@ -153,6 +182,7 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
     selisihTargetTabungan,
     sisaBudgetAman,
     statusKeuanganLabel: statusKeuangan.label,
+    totalIncome,
     totalPengeluaran,
     userLabel,
     weeklyTracking,
@@ -254,12 +284,39 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
           </section>
         ) : null}
 
+        <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+          <SectionHeader
+            title="Pemasukan"
+            description="Gabungan pemasukan utama bulanan dan pemasukan tambahan pada periode ini."
+          />
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <SummaryCard
+              icon={<WalletCards className="size-5" />}
+              label="Pemasukan utama"
+              tone="blue"
+              value={formatRupiah(pemasukanUtama)}
+            />
+            <SummaryCard
+              icon={<HandCoins className="size-5" />}
+              label="Pemasukan tambahan"
+              tone="green"
+              value={formatRupiah(pemasukanTambahan)}
+            />
+            <SummaryCard
+              icon={<WalletCards className="size-5" />}
+              label="Total pemasukan"
+              tone="slate"
+              value={formatRupiah(totalIncome)}
+            />
+          </div>
+        </section>
+
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             icon={<WalletCards className="size-5" />}
             label="Total pemasukan"
             tone="blue"
-            value={formatRupiah(income)}
+            value={formatRupiah(totalIncome)}
           />
           <SummaryCard
             icon={<TrendingDown className="size-5" />}
@@ -377,6 +434,49 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
             title="Weekly tracking"
             type="weekly"
           />
+        </section>
+
+        <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+          <SectionHeader
+            title="Daftar pemasukan tambahan"
+            description="Income sampingan yang ikut menambah total pemasukan bulan ini."
+          />
+          {incomeRows.length === 0 ? (
+            <InlineEmpty label="Belum ada pemasukan tambahan untuk periode ini." />
+          ) : (
+            <div className="mt-6 divide-y divide-[var(--border)]">
+              {[...incomeRows].reverse().map((entry) => (
+                <article
+                  className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  key={entry.id}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)] shadow-sm">
+                        <HandCoins className="size-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold">
+                          {entry.source}
+                        </h3>
+                        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          {formatDateID(entry.date)}
+                        </p>
+                      </div>
+                    </div>
+                    {entry.note ? (
+                      <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                        {entry.note}
+                      </p>
+                    ) : null}
+                  </div>
+                  <p className="text-base font-semibold tabular-nums text-emerald-700">
+                    {formatRupiah(entry.amount)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
@@ -719,9 +819,11 @@ function buildPdfData({
   budgetBelanja,
   categoryBreakdown,
   dailyTracking,
-  income,
+  incomeRows,
   kategoriTerbesar,
   periodLabel,
+  pemasukanTambahan,
+  pemasukanUtama,
   rows,
   savingAktual,
   savingRate,
@@ -731,6 +833,7 @@ function buildPdfData({
   selisihTargetTabungan,
   sisaBudgetAman,
   statusKeuanganLabel,
+  totalIncome,
   totalPengeluaran,
   userLabel,
   weeklyTracking,
@@ -738,9 +841,11 @@ function buildPdfData({
   budgetBelanja: number;
   categoryBreakdown: ReturnType<typeof getCategoryBreakdown>;
   dailyTracking: TrackingEntry[];
-  income: number;
+  incomeRows: RecapIncomeEntry[];
   kategoriTerbesar: ReturnType<typeof getTopCategory>;
   periodLabel: string;
+  pemasukanTambahan: number;
+  pemasukanUtama: number;
   rows: RecapTransaction[];
   savingAktual: number;
   savingRate: number;
@@ -750,6 +855,7 @@ function buildPdfData({
   selisihTargetTabungan: number;
   sisaBudgetAman: number;
   statusKeuanganLabel: string;
+  totalIncome: number;
   totalPengeluaran: number;
   userLabel: string;
   weeklyTracking: TrackingEntry[];
@@ -764,7 +870,12 @@ function buildPdfData({
     exportDate: formatDateID(getJakartaTodayISO()),
     fileName: `gatra-rekap-${monthSlug}-${selectedYear}.pdf`,
     summary: [
-      { label: "Total pemasukan", value: formatRupiah(income) },
+      { label: "Pemasukan utama", value: formatRupiah(pemasukanUtama) },
+      {
+        label: "Pemasukan tambahan",
+        value: formatRupiah(pemasukanTambahan),
+      },
+      { label: "Total pemasukan", value: formatRupiah(totalIncome) },
       { label: "Total pengeluaran", value: formatRupiah(totalPengeluaran) },
       { label: "Sisa Uang Saat Ini", value: formatRupiah(savingAktual) },
       { label: "Target tabungan", value: formatRupiah(savingTarget) },
@@ -786,6 +897,12 @@ function buildPdfData({
       category: getPdfCategoryName(item.name),
       percent: formatPercent(item.percent),
       total: formatRupiah(item.total),
+    })),
+    incomeEntries: incomeRows.map((entry) => ({
+      amount: formatRupiah(entry.amount),
+      date: formatDateID(entry.date),
+      note: entry.note || "-",
+      source: stripEmoji(entry.source) || "Pemasukan tambahan",
     })),
     dailyTracking: dailyTracking.map((entry) => ({
       category: getPdfCategoryName(entry.name),

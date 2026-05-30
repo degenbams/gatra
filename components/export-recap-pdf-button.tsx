@@ -13,6 +13,7 @@ export type RecapPdfData = {
   exportDate: string;
   fileName: string;
   summary: PdfRow[];
+  incomeEntries: PdfRow[];
   categoryBreakdown: PdfRow[];
   dailyTracking: {
     category: string;
@@ -163,6 +164,18 @@ export function ExportRecapPdfButton({ data }: { data: RecapPdfData }) {
         "Ringkasan",
         ["Metrik", "Nilai"],
         data.summary.map((row) => [row.label, row.value]),
+      );
+
+      addTable(
+        "Daftar Pemasukan Tambahan",
+        ["Tanggal", "Sumber", "Nominal", "Catatan"],
+        data.incomeEntries.map((row) => [
+          row.date,
+          row.source,
+          row.amount,
+          row.note,
+        ]),
+        { compact: true },
       );
 
       addTable(

@@ -14,6 +14,7 @@ import { formatRupiah } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import {
   BarChart3,
+  HandCoins,
   PiggyBank,
   Plus,
   ReceiptText,
@@ -43,6 +44,7 @@ export default async function DashboardPage() {
     { data: profile },
     { data: categories },
     { data: currentBudget },
+    { data: incomeEntries },
     { data: transactions },
   ] = await Promise.all([
     supabase
@@ -62,6 +64,12 @@ export default async function DashboardPage() {
       .eq("month", month)
       .eq("year", year)
       .maybeSingle(),
+    supabase
+      .from("income_entries")
+      .select("amount")
+      .eq("user_id", user.id)
+      .gte("date", start)
+      .lt("date", end),
     supabase
       .from("transactions")
       .select("id, date, amount, categories(name, emoji)")
@@ -84,15 +92,20 @@ export default async function DashboardPage() {
   const transactionRows = ((transactions ?? []) as RawDashboardTransaction[]).map(
     normalizeDashboardTransaction,
   );
-  const income = toFiniteNumber(currentBudget?.income);
+  const pemasukanUtama = toFiniteNumber(currentBudget?.income);
+  const pemasukanTambahan = (incomeEntries ?? []).reduce(
+    (total, entry) => total + toFiniteNumber(entry.amount),
+    0,
+  );
+  const totalIncome = pemasukanUtama + pemasukanTambahan;
   const savingTarget = toFiniteNumber(currentBudget?.saving_target);
   const totalPengeluaran = transactionRows.reduce(
     (total, transaction) => total + toFiniteNumber(transaction.amount),
     0,
   );
   const transactionCount = transactionRows.length;
-  const savingAktual = income - totalPengeluaran;
-  const budgetBelanja = income - savingTarget;
+  const savingAktual = totalIncome - totalPengeluaran;
+  const budgetBelanja = totalIncome - savingTarget;
   const sisaBudgetAman = budgetBelanja - totalPengeluaran;
   const statusKeuangan = getFinancialStatus(totalPengeluaran, budgetBelanja);
   const kategoriTerbesar = getTopCategory(transactionRows);
@@ -153,13 +166,28 @@ export default async function DashboardPage() {
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3">
           <StatCard
             icon={<WalletCards className="size-5" />}
-            label="Pemasukan bulan ini"
-            value={formatRupiah(income)}
+            label="Pemasukan Utama"
+            value={formatRupiah(pemasukanUtama)}
             tone="blue"
           />
+          <StatCard
+            icon={<HandCoins className="size-5" />}
+            label="Pemasukan Tambahan"
+            value={formatRupiah(pemasukanTambahan)}
+            tone="green"
+          />
+          <StatCard
+            icon={<WalletCards className="size-5" />}
+            label="Total Pemasukan"
+            value={formatRupiah(totalIncome)}
+            tone="slate"
+          />
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={<TrendingDown className="size-5" />}
             label="Total Pengeluaran"
@@ -254,6 +282,13 @@ export default async function DashboardPage() {
             >
               <ReceiptText className="size-4" />
               Lihat Riwayat Transaksi
+            </Link>
+            <Link
+              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              href="/income"
+            >
+              <HandCoins className="size-4" />
+              Lihat Pemasukan Tambahan
             </Link>
             <Link
               className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
