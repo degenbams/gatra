@@ -1,5 +1,6 @@
 "use client";
 
+import { formatNumberInput, parseNumberInput } from "@/lib/format";
 import { createClient } from "@/lib/supabase/browser";
 import {
   ArrowLeft,
@@ -38,7 +39,7 @@ export function IncomeForm({
   const isEditing = mode === "edit";
   const [date, setDate] = useState(initialIncome?.date ?? initialDate);
   const [source, setSource] = useState(initialIncome?.source ?? "");
-  const [amount, setAmount] = useState(String(initialIncome?.amount ?? ""));
+  const [amount, setAmount] = useState(formatNumberInput(initialIncome?.amount));
   const [note, setNote] = useState(initialIncome?.note ?? "");
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<MessageTone>("success");
@@ -50,7 +51,7 @@ export function IncomeForm({
     event.preventDefault();
     setMessage("");
 
-    const amountNumber = Number(amount);
+    const amountNumber = parseNumberInput(amount);
     const trimmedSource = source.trim();
 
     if (!date) {
@@ -197,15 +198,17 @@ export function IncomeForm({
           <span className="text-sm font-medium">Nominal pemasukan</span>
           <input
             className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
-            type="number"
-            min="1"
-            step="1"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9.]*"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="Contoh: 750000"
+            onChange={(event) => setAmount(formatNumberInput(event.target.value))}
+            placeholder="Contoh: 750.000"
             required
           />
+          <span className="mt-2 block text-xs text-[var(--muted-foreground)]">
+            Titik ribuan ditambahkan otomatis, contoh 750.000.
+          </span>
         </label>
 
         <label className="block sm:col-span-2">

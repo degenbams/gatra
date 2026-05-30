@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/browser";
+import { formatNumberInput, parseNumberInput } from "@/lib/format";
 import {
   ArrowLeft,
   CalendarDays,
@@ -50,7 +51,7 @@ export function TransactionForm({
     initialTransaction?.category_id ?? "",
   );
   const [amount, setAmount] = useState(
-    String(initialTransaction?.amount ?? ""),
+    formatNumberInput(initialTransaction?.amount),
   );
   const [note, setNote] = useState(initialTransaction?.note ?? "");
   const [message, setMessage] = useState("");
@@ -63,7 +64,7 @@ export function TransactionForm({
     event.preventDefault();
     setMessage("");
 
-    const amountNumber = Number(amount);
+    const amountNumber = parseNumberInput(amount);
 
     if (!date) {
       setMessageTone("error");
@@ -214,15 +215,17 @@ export function TransactionForm({
           <span className="text-sm font-medium">Nominal pengeluaran</span>
           <input
             className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
-            type="number"
-            min="1"
-            step="1"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9.]*"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="Contoh: 35000"
+            onChange={(event) => setAmount(formatNumberInput(event.target.value))}
+            placeholder="Contoh: 35.000"
             required
           />
+          <span className="mt-2 block text-xs text-[var(--muted-foreground)]">
+            Gunakan nominal rupiah tanpa koma, contoh 5.000 atau 125.000.
+          </span>
         </label>
 
         <label className="block sm:col-span-2">

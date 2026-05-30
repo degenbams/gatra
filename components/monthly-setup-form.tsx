@@ -1,6 +1,7 @@
 "use client";
 
 import { getMonthLabel, monthOptions } from "@/lib/date";
+import { formatNumberInput, parseNumberInput } from "@/lib/format";
 import { createClient } from "@/lib/supabase/browser";
 import {
   ArrowLeft,
@@ -33,9 +34,9 @@ export function MonthlySetupForm({
   const supabase = useMemo(() => createClient(), []);
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
-  const [income, setIncome] = useState(String(initialBudget?.income ?? ""));
+  const [income, setIncome] = useState(formatNumberInput(initialBudget?.income));
   const [savingTarget, setSavingTarget] = useState(
-    String(initialBudget?.saving_target ?? ""),
+    formatNumberInput(initialBudget?.saving_target),
   );
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
@@ -100,8 +101,8 @@ export function MonthlySetupForm({
       }
 
       if (data) {
-        setIncome(String(data.income ?? ""));
-        setSavingTarget(String(data.saving_target ?? ""));
+        setIncome(formatNumberInput(data.income));
+        setSavingTarget(formatNumberInput(data.saving_target));
         setHasExistingBudget(true);
         setStatusMessage("Budget untuk bulan ini sudah tersimpan");
         setMessageTone("info");
@@ -130,8 +131,8 @@ export function MonthlySetupForm({
 
     const monthNumber = Number(month);
     const yearNumber = Number(year);
-    const incomeNumber = Number(income);
-    const savingTargetNumber = Number(savingTarget);
+    const incomeNumber = parseNumberInput(income);
+    const savingTargetNumber = parseNumberInput(savingTarget);
 
     if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
       setMessageTone("error");
@@ -313,30 +314,36 @@ export function MonthlySetupForm({
           <span className="text-sm font-medium">Total pemasukan bulanan</span>
           <input
             className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
-            type="number"
-            min="0"
-            step="1"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9.]*"
             value={income}
-            onChange={(event) => setIncome(event.target.value)}
-            placeholder="Contoh: 7500000"
+            onChange={(event) => setIncome(formatNumberInput(event.target.value))}
+            placeholder="Contoh: 7.500.000"
             required
           />
+          <span className="mt-2 block text-xs text-[var(--muted-foreground)]">
+            Titik ribuan ditambahkan otomatis supaya nominal lebih mudah dicek.
+          </span>
         </label>
 
         <label className="block">
           <span className="text-sm font-medium">Target tabungan</span>
           <input
             className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
-            type="number"
-            min="0"
-            step="1"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9.]*"
             value={savingTarget}
-            onChange={(event) => setSavingTarget(event.target.value)}
-            placeholder="Contoh: 1500000"
+            onChange={(event) =>
+              setSavingTarget(formatNumberInput(event.target.value))
+            }
+            placeholder="Contoh: 1.500.000"
             required
           />
+          <span className="mt-2 block text-xs text-[var(--muted-foreground)]">
+            Contoh: ketik 1500000, tampil menjadi 1.500.000.
+          </span>
         </label>
       </div>
 
