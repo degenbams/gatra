@@ -30,12 +30,40 @@ export function parseNumberInput(value: string) {
   return Number(digits);
 }
 
+const indonesianMonthNames = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
 export function formatDateID(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00+07:00`));
+  const [datePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return value;
+  }
+
+  return `${String(day).padStart(2, "0")} ${
+    indonesianMonthNames[month - 1]
+  } ${year}`;
 }
 
 export function formatPercent(value: number) {
