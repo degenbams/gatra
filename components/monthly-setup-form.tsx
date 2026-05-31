@@ -13,6 +13,7 @@ import {
   Calculator,
   CalendarDays,
   CheckCircle2,
+  ListChecks,
   PiggyBank,
   Save,
   Target,
@@ -24,12 +25,26 @@ import { useRouter } from "next/navigation";
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 type MonthlySetupFormProps = {
+  categories: CategoryOption[];
+  initialCategoryLimits: CategoryLimitInitial[];
   initialBudget: {
     income: number | string;
     saving_target: number | string;
   } | null;
   initialMonth: number;
   initialYear: number;
+};
+
+type CategoryOption = {
+  emoji: string | null;
+  id: string;
+  name: string;
+  tracking_type: string;
+};
+
+type CategoryLimitInitial = {
+  category_id: string | null;
+  limit_amount: number | string | null;
 };
 
 type MessageTone = "error" | "success" | "info";
@@ -48,9 +63,25 @@ type BudgetPreview = {
   tone: BudgetPreviewTone;
 };
 
+type CategoryLimitSummary = {
+  detail: string;
+  gap: number;
+  hasAnyLimit: boolean;
+  label: string;
+  tone: BudgetPreviewTone;
+  totalLimit: number;
+};
+
 const targetPresets = [10, 20, 30];
+const trackingTypeLabels: Record<string, string> = {
+  daily: "Harian",
+  monthly: "Bulanan",
+  weekly: "Mingguan",
+};
 
 export function MonthlySetupForm({
+  categories,
+  initialCategoryLimits,
   initialBudget,
   initialMonth,
   initialYear,
@@ -62,6 +93,9 @@ export function MonthlySetupForm({
   const [income, setIncome] = useState(formatNumberInput(initialBudget?.income));
   const [savingTarget, setSavingTarget] = useState(
     formatNumberInput(initialBudget?.saving_target),
+  );
+  const [categoryLimitValues, setCategoryLimitValues] = useState(
+    getInitialCategoryLimitValues(categories, initialCategoryLimits),
   );
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
@@ -84,6 +118,14 @@ export function MonthlySetupForm({
         savingTarget: parseNumberInput(savingTarget),
       }),
     [income, month, savingTarget, year],
+  );
+  const categoryLimitSummary = useMemo(
+    () =>
+      getCategoryLimitSummary({
+        budgetBelanja: budgetPreview.budgetBelanja,
+        values: categoryLimitValues,
+      }),
+    [budgetPreview.budgetBelanja, categoryLimitValues],
   );
 
   const yearOptions = useMemo(() => {
@@ -114,13 +156,24 @@ export function MonthlySetupForm({
         return;
       }
 
-      const { data, error } = await supabase
-        .from("monthly_budgets")
-        .select("income, saving_target")
-        .eq("user_id", user.id)
-        .eq("month", month)
-        .eq("year", year)
-        .maybeSingle();
+      const [
+        { data: budgetData, error: budgetError },
+        { data: limitData, error: limitError },
+      ] = await Promise.all([
+        supabase
+          .from("monthly_budgets")
+          .select("income, saving_target")
+          .eq("user_id", user.id)
+          .eq("month", month)
+          .eq("year", year)
+          .maybeSingle(),
+        supabase
+          .from("category_limits")
+          .select("category_id, limit_amount")
+          .eq("user_id", user.id)
+          .eq("month", month)
+          .eq("year", year),
+      ]);
 
       if (!isMounted) {
         return;
@@ -128,19 +181,30 @@ export function MonthlySetupForm({
 
       setIsLoadingBudget(false);
 
-      if (error) {
+      if (budgetError) {
         setMessageTone("error");
         setMessage("Budget bulan ini belum bisa dimuat. Coba lagi sebentar.");
         return;
       }
 
-      if (data) {
-        setIncome(formatNumberInput(data.income));
-        setSavingTarget(formatNumberInput(data.saving_target));
+      setCategoryLimitValues(
+        getInitialCategoryLimitValues(
+          categories,
+          limitError ? [] : ((limitData ?? []) as CategoryLimitInitial[]),
+        ),
+      );
+
+      if (budgetData) {
+        setIncome(formatNumberInput(budgetData.income));
+        setSavingTarget(formatNumberInput(budgetData.saving_target));
         setHasExistingBudget(true);
         setStatusMessage("Budget untuk bulan ini sudah tersimpan");
         setMessageTone("info");
-        setMessage(`Data ${getMonthLabel(month)} ${year} siap diedit.`);
+        setMessage(
+          limitError
+            ? `Data ${getMonthLabel(month)} ${year} siap diedit. Limit kategori belum aktif di database.`
+            : `Data ${getMonthLabel(month)} ${year} siap diedit.`,
+        );
         return;
       }
 
@@ -149,7 +213,11 @@ export function MonthlySetupForm({
       setHasExistingBudget(false);
       setStatusMessage("Belum ada budget untuk bulan ini");
       setMessageTone("info");
-      setMessage(`Belum ada budget untuk ${getMonthLabel(month)} ${year}.`);
+      setMessage(
+        limitError
+          ? `Belum ada budget untuk ${getMonthLabel(month)} ${year}. Limit kategori belum aktif di database.`
+          : `Belum ada budget untuk ${getMonthLabel(month)} ${year}.`,
+      );
     }
 
     loadBudget();
@@ -157,7 +225,7 @@ export function MonthlySetupForm({
     return () => {
       isMounted = false;
     };
-  }, [month, year, supabase]);
+  }, [categories, month, year, supabase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -217,19 +285,59 @@ export function MonthlySetupForm({
       { onConflict: "user_id,month,year" },
     );
 
-    setIsSaving(false);
-
     if (error) {
+      setIsSaving(false);
       setMessageTone("error");
       setMessage("Budget belum berhasil disimpan. Coba lagi sebentar.");
       return;
     }
 
+    const limitRows = categories
+      .map((category) => ({
+        category_id: category.id,
+        limit_amount: parseLimitInput(categoryLimitValues[category.id]),
+        month: monthNumber,
+        user_id: user.id,
+        year: yearNumber,
+      }))
+      .filter((row) => row.limit_amount > 0);
+    const { error: deleteLimitError } = await supabase
+      .from("category_limits")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("month", monthNumber)
+      .eq("year", yearNumber);
+
+    if (deleteLimitError) {
+      setIsSaving(false);
+      setMessageTone("error");
+      setMessage(
+        "Budget tersimpan, tapi limit kategori belum berhasil diperbarui. Pastikan schema category_limits sudah dibuat.",
+      );
+      return;
+    }
+
+    if (limitRows.length > 0) {
+      const { error: insertLimitError } = await supabase
+        .from("category_limits")
+        .insert(limitRows);
+
+      if (insertLimitError) {
+        setIsSaving(false);
+        setMessageTone("error");
+        setMessage(
+          "Budget tersimpan, tapi limit kategori belum berhasil disimpan. Coba lagi sebentar.",
+        );
+        return;
+      }
+    }
+
+    setIsSaving(false);
     setMessageTone("success");
     setMessage(
       hasExistingBudget
-        ? "Budget bulanan berhasil diperbarui."
-        : "Budget bulanan berhasil disimpan.",
+        ? "Budget dan limit kategori berhasil diperbarui."
+        : "Budget dan limit kategori berhasil disimpan.",
     );
     setHasExistingBudget(true);
     setStatusMessage("Budget untuk bulan ini sudah tersimpan");
@@ -247,6 +355,13 @@ export function MonthlySetupForm({
 
     setSavingTarget(formatNumberInput(Math.round((incomeNumber * percent) / 100)));
     setMessage("");
+  }
+
+  function handleCategoryLimitChange(categoryId: string, value: string) {
+    setCategoryLimitValues((current) => ({
+      ...current,
+      [categoryId]: formatNumberInput(value),
+    }));
   }
 
   async function handleDeleteBudget() {
@@ -288,8 +403,16 @@ export function MonthlySetupForm({
       return;
     }
 
+    await supabase
+      .from("category_limits")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("month", month)
+      .eq("year", year);
+
     setIncome("");
     setSavingTarget("");
+    setCategoryLimitValues(getInitialCategoryLimitValues(categories, []));
     setHasExistingBudget(false);
     setStatusMessage("Belum ada budget untuk bulan ini");
     setMessageTone("success");
@@ -417,9 +540,67 @@ export function MonthlySetupForm({
             </span>
           </label>
         </div>
+
+        <div className="mt-8 flex items-start gap-4 border-t border-[var(--border)] pt-6">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[var(--primary)]">
+            <ListChecks className="size-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">
+              Langkah 3
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">Bagi limit kategori</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+              Isi batas per kategori yang paling sering bocor. Kosongkan kalau
+              belum mau diberi limit.
+            </p>
+          </div>
+        </div>
+
+        {categories.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50 p-5 text-sm text-[var(--muted-foreground)]">
+            Kategori belum tersedia.
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {categories.map((category) => (
+              <label
+                className="rounded-2xl border border-[var(--border)] bg-slate-50 p-4"
+                key={category.id}
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+                    {category.emoji}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">
+                      {category.name}
+                    </span>
+                    <span className="text-xs text-[var(--muted-foreground)]">
+                      {trackingTypeLabels[category.tracking_type] ??
+                        category.tracking_type}
+                    </span>
+                  </span>
+                </span>
+                <input
+                  className="mt-3 h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100"
+                  inputMode="numeric"
+                  onChange={(event) =>
+                    handleCategoryLimitChange(category.id, event.target.value)
+                  }
+                  pattern="[0-9.]*"
+                  placeholder="Limit bulanan"
+                  type="text"
+                  value={categoryLimitValues[category.id] ?? ""}
+                />
+              </label>
+            ))}
+          </div>
+        )}
       </section>
 
       <BudgetPreviewPanel
+        categoryLimitSummary={categoryLimitSummary}
         onUsePreset={handleUsePreset}
         preview={budgetPreview}
       />
@@ -481,13 +662,16 @@ export function MonthlySetupForm({
 }
 
 function BudgetPreviewPanel({
+  categoryLimitSummary,
   onUsePreset,
   preview,
 }: {
+  categoryLimitSummary: CategoryLimitSummary;
   onUsePreset: (percent: number) => void;
   preview: BudgetPreview;
 }) {
   const toneClass = budgetPreviewToneClasses[preview.tone];
+  const categoryToneClass = budgetPreviewToneClasses[categoryLimitSummary.tone];
 
   return (
     <aside className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6 lg:sticky lg:top-6 lg:self-start">
@@ -497,7 +681,7 @@ function BudgetPreviewPanel({
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted-foreground)]">
-            Langkah 3
+            Langkah 4
           </p>
           <h2 className="mt-1 text-lg font-semibold">Cek realistis</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
@@ -547,6 +731,21 @@ function BudgetPreviewPanel({
         />
       </div>
 
+      <div className={`mt-5 rounded-2xl border p-4 ${categoryToneClass.panel}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${categoryToneClass.badge}`}
+          >
+            {categoryLimitSummary.label}
+          </span>
+          <ListChecks className="size-5 shrink-0" />
+        </div>
+        <p className="mt-4 text-sm font-semibold">
+          Total limit kategori: {formatRupiah(categoryLimitSummary.totalLimit)}
+        </p>
+        <p className="mt-2 text-sm leading-6">{categoryLimitSummary.detail}</p>
+      </div>
+
       <div className="mt-6">
         <p className="text-sm font-semibold">Target cepat</p>
         <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--border)]">
@@ -585,6 +784,108 @@ function BudgetPreviewMetric({
       <span className="break-words text-right text-sm font-semibold">{value}</span>
     </div>
   );
+}
+
+function getInitialCategoryLimitValues(
+  categories: CategoryOption[],
+  limits: CategoryLimitInitial[],
+) {
+  const limitByCategory = new Map(
+    limits
+      .filter((limit) => limit.category_id)
+      .map((limit) => [
+        limit.category_id as string,
+        formatNumberInput(limit.limit_amount),
+      ]),
+  );
+
+  return Object.fromEntries(
+    categories.map((category) => [
+      category.id,
+      limitByCategory.get(category.id) ?? "",
+    ]),
+  );
+}
+
+function parseLimitInput(value: string | undefined) {
+  const number = parseNumberInput(value ?? "");
+
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getCategoryLimitSummary({
+  budgetBelanja,
+  values,
+}: {
+  budgetBelanja: number;
+  values: Record<string, string>;
+}): CategoryLimitSummary {
+  const totalLimit = Object.values(values).reduce(
+    (total, value) => total + parseLimitInput(value),
+    0,
+  );
+  const gap = budgetBelanja - totalLimit;
+
+  if (totalLimit <= 0) {
+    return {
+      detail:
+        "Limit kategori belum diisi. Dashboard tetap jalan, tapi belum bisa menunjukkan kategori mana yang mulai bocor.",
+      gap,
+      hasAnyLimit: false,
+      label: "Belum dibagi",
+      tone: "slate",
+      totalLimit,
+    };
+  }
+
+  if (budgetBelanja <= 0) {
+    return {
+      detail:
+        "Budget belanja masih 0, jadi limit kategori belum punya ruang aman untuk dibandingkan.",
+      gap,
+      hasAnyLimit: true,
+      label: "Cek budget",
+      tone: "red",
+      totalLimit,
+    };
+  }
+
+  if (gap < 0) {
+    return {
+      detail: `Total limit kategori lebih besar ${formatRupiah(
+        Math.abs(gap),
+      )} dari budget belanja. Turunkan beberapa kategori supaya rencana lebih realistis.`,
+      gap,
+      hasAnyLimit: true,
+      label: "Lewat budget",
+      tone: "red",
+      totalLimit,
+    };
+  }
+
+  if (gap <= budgetBelanja * 0.1) {
+    return {
+      detail: `Hampir seluruh budget belanja sudah dibagi. Sisa cadangan ${formatRupiah(
+        gap,
+      )}.`,
+      gap,
+      hasAnyLimit: true,
+      label: "Ketat",
+      tone: "amber",
+      totalLimit,
+    };
+  }
+
+  return {
+    detail: `Masih ada cadangan ${formatRupiah(
+      gap,
+    )} di luar limit kategori. Rencana kategori terlihat aman.`,
+    gap,
+    hasAnyLimit: true,
+    label: "Aman",
+    tone: "green",
+    totalLimit,
+  };
 }
 
 function getBudgetPreview({

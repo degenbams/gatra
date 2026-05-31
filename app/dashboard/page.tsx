@@ -6,6 +6,11 @@ import {
 } from "@/components/dashboard-charts";
 import { LogoutButton } from "@/components/logout-button";
 import {
+  buildCategoryLimitItems,
+  getCategoryLimitTotals,
+  type CategoryLimitItem,
+} from "@/lib/category-limits";
+import {
   getJakartaMonthYear,
   getJakartaTodayISO,
   getMonthDateRange,
@@ -18,6 +23,7 @@ import {
   BarChart3,
   CalendarDays,
   HandCoins,
+  ListChecks,
   PiggyBank,
   Plus,
   ReceiptText,
@@ -49,6 +55,7 @@ export default async function DashboardPage() {
     { data: currentBudget },
     { data: incomeEntries },
     { data: transactions },
+    { data: categoryLimits },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -57,7 +64,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from("categories")
-      .select("name, emoji, tracking_type")
+      .select("id, name, emoji, tracking_type")
       .order("tracking_type")
       .order("name"),
     supabase
@@ -75,10 +82,16 @@ export default async function DashboardPage() {
       .lt("date", end),
     supabase
       .from("transactions")
-      .select("id, date, amount, categories(name, emoji)")
+      .select("id, date, amount, category_id, categories(name, emoji)")
       .eq("user_id", user.id)
       .gte("date", start)
       .lt("date", end),
+    supabase
+      .from("category_limits")
+      .select("category_id, limit_amount")
+      .eq("user_id", user.id)
+      .eq("month", month)
+      .eq("year", year),
   ]);
 
   const displayName =
@@ -135,6 +148,12 @@ export default async function DashboardPage() {
     totalPengeluaran,
   );
   const dailyExpenseData = getDailyExpenseData(transactionRows);
+  const categoryLimitItems = buildCategoryLimitItems({
+    categories: categories ?? [],
+    limits: categoryLimits ?? [],
+    transactions: transactionRows,
+  });
+  const categoryLimitTotals = getCategoryLimitTotals(categoryLimitItems);
 
   return (
     <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
@@ -244,6 +263,11 @@ export default async function DashboardPage() {
             transactionCount={transactionCount}
           />
         </section>
+
+        <CategoryLimitPanel
+          items={categoryLimitItems}
+          totals={categoryLimitTotals}
+        />
 
         <DashboardCharts
           categoryData={categoryExpenseData}
@@ -527,6 +551,119 @@ function FinancialStatusBadge({ status }: { status: FinancialStatus }) {
   );
 }
 
+function CategoryLimitPanel({
+  items,
+  totals,
+}: {
+  items: CategoryLimitItem[];
+  totals: { limitAmount: number; spentAmount: number };
+}) {
+  const hasLimits = items.some((item) => item.limitAmount > 0);
+  const totalPercent =
+    totals.limitAmount > 0
+      ? Math.min((totals.spentAmount / totals.limitAmount) * 100, 100)
+      : 0;
+
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)]">
+            <ListChecks className="size-5" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold">Limit per kategori</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            Pantau kategori yang mendekati batas bulanan.
+          </p>
+        </div>
+        <Link
+          className="flex h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+          href="/monthly-setup"
+        >
+          Atur Limit
+        </Link>
+      </div>
+
+      {hasLimits ? (
+        <>
+          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-[var(--muted-foreground)]">
+                  Total limit terpakai
+                </p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {formatRupiah(totals.spentAmount)}
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-[var(--muted-foreground)]">
+                dari {formatRupiah(totals.limitAmount)}
+              </p>
+            </div>
+            <div className="mt-4 h-2 rounded-full bg-white">
+              <div
+                className="h-2 rounded-full bg-[var(--primary)]"
+                style={{ width: `${totalPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {items.slice(0, 6).map((item) => (
+              <CategoryLimitRow item={item} key={item.categoryId} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50 p-6 text-center">
+          <p className="text-sm font-semibold">Limit kategori belum diatur.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
+            Isi limit Food, Dating, Lifestyle, dan kategori lain di halaman
+            Budget supaya Gatra bisa menunjukkan kategori yang mulai bocor.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CategoryLimitRow({ item }: { item: CategoryLimitItem }) {
+  const toneClasses = {
+    amber: "bg-amber-50 text-amber-700 ring-amber-200",
+    blue: "bg-blue-50 text-blue-700 ring-blue-200",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    red: "bg-red-50 text-red-700 ring-red-200",
+    slate: "bg-slate-100 text-slate-700 ring-slate-200",
+  }[item.tone];
+
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{item.label}</p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            {formatRupiah(item.spentAmount)} dari {formatRupiah(item.limitAmount)}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${toneClasses}`}
+        >
+          {item.statusLabel}
+        </span>
+      </div>
+      <div className="mt-4 h-2 rounded-full bg-slate-100">
+        <div
+          className={`h-2 rounded-full ${item.tone === "red" ? "bg-red-500" : "bg-[var(--accent)]"}`}
+          style={{ width: `${Math.min(item.percent, 100)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+        Sisa {formatRupiah(Math.max(item.remainingAmount, 0))}
+      </p>
+    </div>
+  );
+}
+
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-t border-[var(--border)] pt-3">
@@ -574,11 +711,13 @@ type DashboardTransaction = {
     emoji: string | null;
     name: string;
   } | null;
+  category_id: string | null;
   date: string;
 };
 
 type RawDashboardTransaction = {
   amount: number | string;
+  category_id: string | null;
   categories:
     | {
         emoji: string | null;
@@ -625,6 +764,7 @@ function normalizeDashboardTransaction(
     categories: Array.isArray(transaction.categories)
       ? transaction.categories[0] ?? null
       : transaction.categories,
+    category_id: transaction.category_id,
     date: transaction.date,
   };
 }

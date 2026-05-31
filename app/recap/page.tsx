@@ -4,6 +4,11 @@ import {
   type RecapPdfData,
 } from "@/components/export-recap-pdf-button";
 import {
+  buildCategoryLimitItems,
+  getCategoryLimitTotals,
+  type CategoryLimitItem,
+} from "@/lib/category-limits";
+import {
   getJakartaMonthYear,
   getJakartaTodayISO,
   getMonthDateRange,
@@ -43,6 +48,7 @@ type CategoryInfo = {
 type RecapTransaction = {
   amount: number | string;
   categories: CategoryInfo | null;
+  category_id: string | null;
   date: string;
   id: string;
   note: string | null;
@@ -101,6 +107,8 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
     { data: budget },
     { data: incomeEntries },
     { data: transactions },
+    { data: categories },
+    { data: categoryLimits },
   ] = await Promise.all([
       supabase
         .from("profiles")
@@ -124,12 +132,23 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
       .order("created_at", { ascending: true }),
     supabase
       .from("transactions")
-      .select("id, date, amount, note, categories(name, emoji)")
+      .select("id, date, amount, note, category_id, categories(name, emoji)")
       .eq("user_id", user.id)
       .gte("date", start)
       .lt("date", end)
       .order("date", { ascending: true })
       .order("created_at", { ascending: true }),
+    supabase
+      .from("categories")
+      .select("id, name, emoji, tracking_type")
+      .order("tracking_type")
+      .order("name"),
+    supabase
+      .from("category_limits")
+      .select("category_id, limit_amount")
+      .eq("user_id", user.id)
+      .eq("month", selectedMonth)
+      .eq("year", selectedYear),
   ]);
 
   const rows = ((transactions ?? []) as RawRecapTransaction[]).map(
@@ -156,6 +175,12 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
   const statusKeuangan = getFinancialStatus(totalPengeluaran, budgetBelanja);
   const kategoriTerbesar = getTopCategory(rows);
   const categoryBreakdown = getCategoryBreakdown(rows, totalPengeluaran);
+  const categoryLimitItems = buildCategoryLimitItems({
+    categories: categories ?? [],
+    limits: categoryLimits ?? [],
+    transactions: rows,
+  });
+  const categoryLimitTotals = getCategoryLimitTotals(categoryLimitItems);
   const dailyTracking = getDailyTracking(rows);
   const weeklyTracking = getWeeklyTracking(rows);
   const userLabel =
@@ -421,6 +446,11 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
           )}
         </section>
 
+        <CategoryLimitRecap
+          items={categoryLimitItems}
+          totals={categoryLimitTotals}
+        />
+
         <section className="grid gap-6 xl:grid-cols-2">
           <TrackingCard
             description="Total per kategori pada tanggal transaksi."
@@ -661,6 +691,100 @@ function TrackingCard({
         ))}
       </div>
     </section>
+  );
+}
+
+function CategoryLimitRecap({
+  items,
+  totals,
+}: {
+  items: CategoryLimitItem[];
+  totals: { limitAmount: number; spentAmount: number };
+}) {
+  const hasLimits = items.some((item) => item.limitAmount > 0);
+  const totalPercent =
+    totals.limitAmount > 0
+      ? Math.min((totals.spentAmount / totals.limitAmount) * 100, 100)
+      : 0;
+
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <SectionHeader
+        title="Tracking limit kategori"
+        description="Membandingkan limit bulanan per kategori dengan pengeluaran aktual."
+      />
+
+      {hasLimits ? (
+        <>
+          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-[var(--muted-foreground)]">
+                  Total limit terpakai
+                </p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {formatRupiah(totals.spentAmount)}
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-[var(--muted-foreground)]">
+                dari {formatRupiah(totals.limitAmount)}
+              </p>
+            </div>
+            <div className="mt-4 h-2 rounded-full bg-white">
+              <div
+                className="h-2 rounded-full bg-[var(--primary)]"
+                style={{ width: `${totalPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {items.map((item) => (
+              <CategoryLimitRecapRow item={item} key={item.categoryId} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <InlineEmpty label="Limit kategori belum diatur untuk periode ini." />
+      )}
+    </section>
+  );
+}
+
+function CategoryLimitRecapRow({ item }: { item: CategoryLimitItem }) {
+  const toneClasses = {
+    amber: "bg-amber-50 text-amber-700 ring-amber-200",
+    blue: "bg-blue-50 text-blue-700 ring-blue-200",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    red: "bg-red-50 text-red-700 ring-red-200",
+    slate: "bg-slate-100 text-slate-700 ring-slate-200",
+  }[item.tone];
+
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{item.label}</p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            {formatRupiah(item.spentAmount)} dari {formatRupiah(item.limitAmount)}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${toneClasses}`}
+        >
+          {item.statusLabel}
+        </span>
+      </div>
+      <div className="mt-4 h-2 rounded-full bg-slate-100">
+        <div
+          className={`h-2 rounded-full ${item.tone === "red" ? "bg-red-500" : "bg-[var(--accent)]"}`}
+          style={{ width: `${Math.min(item.percent, 100)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+        Sisa {formatRupiah(Math.max(item.remainingAmount, 0))}
+      </p>
+    </div>
   );
 }
 

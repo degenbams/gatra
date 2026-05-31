@@ -16,13 +16,30 @@ export default async function MonthlySetupPage() {
 
   const { month, year } = getJakartaMonthYear();
 
-  const { data: currentBudget } = await supabase
-    .from("monthly_budgets")
-    .select("income, saving_target")
-    .eq("user_id", user.id)
-    .eq("month", month)
-    .eq("year", year)
-    .maybeSingle();
+  const [
+    { data: currentBudget },
+    { data: categories },
+    { data: categoryLimits },
+  ] = await Promise.all([
+    supabase
+      .from("monthly_budgets")
+      .select("income, saving_target")
+      .eq("user_id", user.id)
+      .eq("month", month)
+      .eq("year", year)
+      .maybeSingle(),
+    supabase
+      .from("categories")
+      .select("id, name, emoji, tracking_type")
+      .order("tracking_type")
+      .order("name"),
+    supabase
+      .from("category_limits")
+      .select("category_id, limit_amount")
+      .eq("user_id", user.id)
+      .eq("month", month)
+      .eq("year", year),
+  ]);
 
   return (
     <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
@@ -43,6 +60,8 @@ export default async function MonthlySetupPage() {
         <AppNav active="budget" />
 
         <MonthlySetupForm
+          categories={categories ?? []}
+          initialCategoryLimits={categoryLimits ?? []}
           initialBudget={currentBudget}
           initialMonth={month}
           initialYear={year}

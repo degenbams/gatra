@@ -35,6 +35,8 @@ Do not add or expose a `service_role` key in the frontend.
 
 Run `supabase-income-entries.sql` in the Supabase SQL Editor before using the Pemasukan Tambahan feature. The script creates `income_entries`, enables RLS, adds per-user policies, and attaches the `updated_at` trigger.
 
+Run `supabase-category-limits.sql` in the Supabase SQL Editor before using the Limit per Kategori feature. The script creates `category_limits`, enables RLS, adds per-user policies, and attaches the `updated_at` trigger.
+
 ## Supabase Auth Setup
 
 ### Development
