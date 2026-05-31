@@ -26,17 +26,17 @@ export default async function MonthlySetupPage() {
 
   return (
     <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">
-            Monthly Setup
+            Budget Onboarding
           </p>
           <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
             Atur Budget Bulanan
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Setup awal untuk {getMonthLabel(month)} {year}. Data akan disimpan
-            per user, bulan, dan tahun.
+            Setup awal untuk {getMonthLabel(month)} {year}. Isi pemasukan,
+            pilih target tabungan, lalu cek apakah jatah harian masih realistis.
           </p>
         </header>
 

@@ -60,6 +60,19 @@ export function getRemainingDaysInMonth(dateISO: string) {
   return Math.max(daysInMonth - day + 1, 1);
 }
 
+export function getDaysInMonth(month: number, year: number) {
+  if (
+    !Number.isInteger(month) ||
+    !Number.isInteger(year) ||
+    month < 1 ||
+    month > 12
+  ) {
+    return 30;
+  }
+
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 export function getMonthDateRange(month: number, year: number) {
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const nextMonth = month === 12 ? 1 : month + 1;
