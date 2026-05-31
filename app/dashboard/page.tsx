@@ -5,6 +5,7 @@ import {
   type DailyExpenseChartItem,
 } from "@/components/dashboard-charts";
 import { LogoutButton } from "@/components/logout-button";
+import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
 import {
   buildCategoryLimitItems,
   getCategoryLimitTotals,
@@ -18,6 +19,7 @@ import {
   getRemainingDaysInMonth,
 } from "@/lib/date";
 import { formatRupiah } from "@/lib/format";
+import { buildMonthlyInsights } from "@/lib/monthly-insights";
 import { createClient } from "@/lib/supabase/server";
 import {
   BarChart3,
@@ -154,6 +156,19 @@ export default async function DashboardPage() {
     transactions: transactionRows,
   });
   const categoryLimitTotals = getCategoryLimitTotals(categoryLimitItems);
+  const monthlyInsights = buildMonthlyInsights({
+    budgetBelanja,
+    categoryBreakdown: categoryExpenseData,
+    categoryLimitItems,
+    hasBudget: Boolean(currentBudget),
+    savingAktual,
+    savingTarget,
+    sisaBudgetAman,
+    totalIncome,
+    totalPengeluaran,
+    transactionCount,
+  });
+  const periodLabel = `${getMonthLabel(month)} ${year}`;
 
   return (
     <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
@@ -263,6 +278,11 @@ export default async function DashboardPage() {
             transactionCount={transactionCount}
           />
         </section>
+
+        <MonthlyInsightsPanel
+          insights={monthlyInsights}
+          periodLabel={periodLabel}
+        />
 
         <CategoryLimitPanel
           items={categoryLimitItems}

@@ -3,6 +3,7 @@ import {
   ExportRecapPdfButton,
   type RecapPdfData,
 } from "@/components/export-recap-pdf-button";
+import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
 import {
   buildCategoryLimitItems,
   getCategoryLimitTotals,
@@ -16,6 +17,7 @@ import {
   monthOptions,
 } from "@/lib/date";
 import { formatDateID, formatPercent, formatRupiah } from "@/lib/format";
+import { buildMonthlyInsights } from "@/lib/monthly-insights";
 import { createClient } from "@/lib/supabase/server";
 import {
   ArrowLeft,
@@ -181,6 +183,18 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
     transactions: rows,
   });
   const categoryLimitTotals = getCategoryLimitTotals(categoryLimitItems);
+  const monthlyInsights = buildMonthlyInsights({
+    budgetBelanja,
+    categoryBreakdown,
+    categoryLimitItems,
+    hasBudget: Boolean(budget),
+    savingAktual,
+    savingTarget,
+    sisaBudgetAman,
+    totalIncome,
+    totalPengeluaran,
+    transactionCount: rows.length,
+  });
   const dailyTracking = getDailyTracking(rows);
   const weeklyTracking = getWeeklyTracking(rows);
   const userLabel =
@@ -410,6 +424,11 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
             value={formatRupiah(kategoriTerbesar.total)}
           />
         </section>
+
+        <MonthlyInsightsPanel
+          insights={monthlyInsights}
+          periodLabel={periodLabel}
+        />
 
         <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
           <SectionHeader
