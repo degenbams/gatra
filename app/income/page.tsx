@@ -76,8 +76,8 @@ export default async function IncomePage({ searchParams }: IncomePageProps) {
                 Pemasukan {getMonthLabel(selectedMonth)} {selectedYear}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-                Catat income dari kerja sampingan, freelance, bonus, atau jualan
-                tanpa mengubah pemasukan utama bulanan.
+                Catat pemasukan dari kerja sampingan, freelance, bonus, atau
+                jualan tanpa mengubah pemasukan utama bulanan.
               </p>
             </div>
 
@@ -169,8 +169,8 @@ export default async function IncomePage({ searchParams }: IncomePageProps) {
                 Belum ada pemasukan tambahan
               </h3>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
-                Tambahkan income dari freelance, bonus, atau jualan supaya total
-                pemasukan dashboard lebih akurat.
+                Tambahkan pemasukan dari freelance, bonus, atau jualan supaya
+                total pemasukan dashboard lebih akurat.
               </p>
               <Link
                 className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"

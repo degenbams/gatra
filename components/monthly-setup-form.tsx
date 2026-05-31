@@ -716,7 +716,7 @@ function BudgetPreviewPanel({
       <div className="mt-5 grid gap-3">
         <BudgetPreviewMetric
           icon={<PiggyBank className="size-4" />}
-          label="Saving rate"
+          label="Rasio tabungan"
           value={formatPercent(preview.savingRate)}
         />
         <BudgetPreviewMetric
@@ -779,9 +779,13 @@ function BudgetPreviewMetric({
     <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-3 py-3">
       <div className="flex min-w-0 items-center gap-2 text-sm text-[var(--muted-foreground)]">
         <span className="shrink-0">{icon}</span>
-        <span className="truncate">{label}</span>
+        <span className="min-w-0 whitespace-normal break-words leading-5">
+          {label}
+        </span>
       </div>
-      <span className="break-words text-right text-sm font-semibold">{value}</span>
+      <span className="break-words text-right text-sm font-semibold tabular-nums">
+        {value}
+      </span>
     </div>
   );
 }

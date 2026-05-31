@@ -1,74 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gatra
 
-## Getting Started
+Gatra adalah aplikasi rekap keuangan pribadi berbasis Next.js dan Supabase.
+Fokusnya sederhana: bantu pengguna mencatat pemasukan, pengeluaran, target
+tabungan, jatah aman harian, dan rekap bulanan dalam satu dashboard yang rapi.
 
-First, run the development server:
+Tagline: **Rekap keuanganmu, tersusun jelas.**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Production: [https://gatra.cash](https://gatra.cash)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Preview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+![Gatra login desktop](./gatra-login-desktop.png)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+![Gatra monthly setup mobile](./gatra-monthly-setup-mobile.png)
+
+## Fitur Utama
+
+- Auth email/password dengan Supabase Auth.
+- Dashboard bulanan dengan pemasukan utama, pemasukan tambahan, total pemasukan,
+  total pengeluaran, sisa uang saat ini, sisa budget aman, dan status keuangan.
+- Jatah aman hari ini untuk membantu kontrol belanja harian.
+- Budget bulanan dengan target tabungan dan preview realistis.
+- Limit kategori untuk memantau pos pengeluaran yang mulai bocor.
+- Transaksi pengeluaran: tambah, edit, hapus, filter bulan/tahun.
+- Pemasukan tambahan: tambah, edit, hapus, filter bulan/tahun.
+- Rekap bulanan dengan insight, breakdown kategori, daily tracking, weekly
+  tracking, daftar transaksi, dan daftar pemasukan tambahan.
+- Export PDF rekap bulanan langsung dari browser.
+- UI Bahasa Indonesia, mobile responsive, dan format rupiah dengan pemisah
+  ribuan.
+
+## Tech Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Supabase Auth + Postgres + RLS
+- Recharts
+- jsPDF + autoTable
 
 ## Environment Variables
 
-Gatra only needs these public Supabase keys in `.env.local`:
+Gatra hanya butuh public Supabase keys di `.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Do not add or expose a `service_role` key in the frontend.
+Jangan menambahkan `service_role` key ke frontend.
+
+## Setup Lokal
+
+```bash
+npm install
+npm run dev
+```
+
+Buka [http://localhost:3000](http://localhost:3000).
 
 ## Supabase Database Updates
 
-Run `supabase-income-entries.sql` in the Supabase SQL Editor before using the Pemasukan Tambahan feature. The script creates `income_entries`, enables RLS, adds per-user policies, and attaches the `updated_at` trigger.
+Jalankan SQL berikut di Supabase SQL Editor:
 
-Run `supabase-category-limits.sql` in the Supabase SQL Editor before using the Limit per Kategori feature. The script creates `category_limits`, enables RLS, adds per-user policies, and attaches the `updated_at` trigger.
+- `supabase-income-entries.sql`
+  Membuat tabel `income_entries`, RLS, policy per user, dan trigger
+  `updated_at`.
+
+- `supabase-category-limits.sql`
+  Membuat tabel `category_limits`, RLS, policy per user, dan trigger
+  `updated_at`.
+
+Data keuangan user dipisah lewat RLS dan `auth.uid()`.
 
 ## Supabase Auth Setup
 
 ### Development
 
-For local testing, Supabase email verification can hit the default email sender rate limit. To avoid blocked register tests:
+Untuk testing lokal, email verification Supabase bisa terkena rate limit.
 
-- Open Supabase Dashboard > Authentication > Providers > Email.
-- Turn off `Confirm email` while testing locally.
-- Keep using the normal email/password register form in Gatra.
-
-With `Confirm email` off, Supabase can return a session immediately and Gatra redirects the user to `/dashboard`.
+- Buka Supabase Dashboard > Authentication > Providers > Email.
+- Matikan `Confirm email` saat testing lokal.
+- Tetap gunakan flow register/login email dan password di Gatra.
 
 ### Production
 
-Before deploying to real users:
+- Aktifkan kembali email confirmation jika dibutuhkan.
+- Gunakan custom SMTP seperti Resend, SendGrid, Mailgun, atau SMTP provider lain.
+- Set `Site URL` ke domain production.
+- Tambahkan redirect URL production dan localhost di Supabase Auth.
 
-- Turn `Confirm email` back on if email verification is required.
-- Configure custom SMTP, such as Resend, SendGrid, Mailgun, or another SMTP provider, so verification emails do not depend on the default Supabase email sender.
-- Set the Supabase Auth `Site URL` to the production Vercel domain.
-- Add the production redirect URL, for example `https://your-domain.vercel.app/auth/callback`, to Supabase Auth Redirect URLs.
+Contoh:
 
-## Learn More
+```text
+https://gatra.cash/**
+https://www.gatra.cash/**
+http://localhost:3000/**
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Quality Check
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Jalankan sebelum push:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+npm run build
+```
 
-## Deploy on Vercel
+## Multi Device Workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Kalau mengedit dari PC/laptop berbeda, selalu sync dulu:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+git pull --ff-only origin main
+```
+
+Setelah selesai:
+
+```bash
+npm run lint
+npm run build
+git status
+git add .
+git commit -m "Describe the change"
+git push origin main
+```
+
+Vercel akan deploy otomatis dari branch `main`.

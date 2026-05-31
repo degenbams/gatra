@@ -138,7 +138,7 @@ function getSavingInsight({
           ? `Sisa uang saat ini lebih ${formatRupiah(difference)} dari target tabungan.`
           : "Sisa uang saat ini pas dengan target tabungan.",
       kind: "saving",
-      label: "On track",
+      label: "Aman",
       title: "Target tabungan masih aman",
       tone: "green",
     };
@@ -147,7 +147,7 @@ function getSavingInsight({
   return {
     detail: `Kurang ${formatRupiah(
       Math.abs(difference),
-    )}. Tahan belanja atau tambah income sebesar angka itu supaya target balik aman.`,
+    )}. Tahan belanja atau tambah pemasukan sebesar angka itu supaya target balik aman.`,
     kind: "saving",
     label: "Perlu dikejar",
     title: "Target tabungan mulai ketarik",
@@ -174,7 +174,7 @@ function getBudgetInsight({
     return {
       detail: `Target tabungan lebih besar ${formatRupiah(
         Math.abs(budgetBelanja),
-      )} dari pemasukan. Target perlu diturunkan atau income perlu ditambah.`,
+      )} dari pemasukan. Target perlu diturunkan atau pemasukan perlu ditambah.`,
       kind: "budget",
       label: "Terlalu ketat",
       title: "Budget belanja minus",

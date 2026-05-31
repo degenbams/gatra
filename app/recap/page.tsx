@@ -383,7 +383,7 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
           />
           <SummaryCard
             icon={<PiggyBank className="size-5" />}
-            label="Saving rate"
+            label="Rasio tabungan"
             tone={savingRate >= 20 ? "green" : "amber"}
             value={formatPercent(savingRate)}
           />
@@ -488,7 +488,7 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
         <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
           <SectionHeader
             title="Daftar pemasukan tambahan"
-            description="Income sampingan yang ikut menambah total pemasukan bulan ini."
+            description="Pemasukan sampingan yang ikut menambah total pemasukan bulan ini."
           />
           {incomeRows.length === 0 ? (
             <InlineEmpty label="Belum ada pemasukan tambahan untuk periode ini." />
@@ -764,7 +764,21 @@ function CategoryLimitRecap({
           </div>
         </>
       ) : (
-        <InlineEmpty label="Limit kategori belum diatur untuk periode ini." />
+        <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50 p-6 text-center">
+          <p className="text-sm font-semibold">
+            Limit kategori belum diatur untuk periode ini.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
+            Isi limit kategori dari halaman Budget supaya rekap bisa menunjukkan
+            kategori yang mendekati batas.
+          </p>
+          <Link
+            className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            href="/monthly-setup"
+          >
+            Atur Limit Kategori
+          </Link>
+        </div>
       )}
     </section>
   );
@@ -1026,7 +1040,7 @@ function buildPdfData({
         label: "Selisih dari Target Tabungan",
         value: formatTargetDifference(selisihTargetTabungan),
       },
-      { label: "Saving rate", value: formatPercent(savingRate) },
+      { label: "Rasio tabungan", value: formatPercent(savingRate) },
       { label: "Budget belanja", value: formatRupiah(budgetBelanja) },
       { label: "Sisa budget aman", value: formatRupiah(sisaBudgetAman) },
       { label: "Status keuangan", value: statusKeuanganLabel },

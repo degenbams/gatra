@@ -193,6 +193,13 @@ export default async function DashboardPage() {
               <Plus className="size-4" />
               Tambah Transaksi
             </Link>
+            <Link
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              href="/income/new"
+            >
+              <HandCoins className="size-4" />
+              Tambah Pemasukan
+            </Link>
             <LogoutButton />
           </div>
         </header>
@@ -206,8 +213,8 @@ export default async function DashboardPage() {
                 Budget {getMonthLabel(month)} {year} belum diatur
               </h2>
               <p className="mt-2 text-sm leading-6 text-blue-800">
-                Isi pemasukan dan target tabungan dulu supaya dashboard bisa
-                mulai menghitung rekap bulanan.
+                Isi pemasukan utama dan target tabungan dulu supaya Gatra bisa
+                menghitung jatah aman, progress tabungan, dan status bulanan.
               </p>
             </div>
             <Link
@@ -346,6 +353,20 @@ export default async function DashboardPage() {
             </p>
             <Link
               className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              href="/transactions/new"
+            >
+              <Plus className="size-4" />
+              Tambah Transaksi
+            </Link>
+            <Link
+              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              href="/income/new"
+            >
+              <HandCoins className="size-4" />
+              Tambah Pemasukan
+            </Link>
+            <Link
+              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
               href="/transactions"
             >
               <ReceiptText className="size-4" />
@@ -641,6 +662,12 @@ function CategoryLimitPanel({
             Isi limit Food, Dating, Lifestyle, dan kategori lain di halaman
             Budget supaya Gatra bisa menunjukkan kategori yang mulai bocor.
           </p>
+          <Link
+            className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            href="/monthly-setup"
+          >
+            Atur Limit Kategori
+          </Link>
         </div>
       )}
     </section>
@@ -720,7 +747,9 @@ function StatCard({
         {icon}
       </div>
       <p className="mt-4 text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+      <p className="mt-1 break-words text-2xl font-semibold tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }

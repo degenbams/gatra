@@ -58,7 +58,7 @@ export function AppNav({ active }: { active: AppNavItem["id"] }) {
 
         return (
           <Link
-            className={`flex h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+            className={`flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
               isActive
                 ? "bg-[var(--primary)] text-white shadow-sm"
                 : "text-[var(--foreground)] hover:bg-slate-50"
@@ -66,8 +66,8 @@ export function AppNav({ active }: { active: AppNavItem["id"] }) {
             href={item.href}
             key={item.id}
           >
-            {item.icon}
-            {item.label}
+            <span className="shrink-0">{item.icon}</span>
+            <span className="truncate">{item.label}</span>
           </Link>
         );
       })}

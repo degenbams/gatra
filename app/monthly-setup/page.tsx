@@ -46,14 +46,15 @@ export default async function MonthlySetupPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">
-            Budget Onboarding
+            Panduan Budget
           </p>
           <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
             Atur Budget Bulanan
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Setup awal untuk {getMonthLabel(month)} {year}. Isi pemasukan,
-            pilih target tabungan, lalu cek apakah jatah harian masih realistis.
+            Atur pemasukan utama, target tabungan, dan limit kategori untuk{" "}
+            {getMonthLabel(month)} {year}. Gatra akan bantu cek apakah jatah
+            harianmu masih realistis.
           </p>
         </header>
 
