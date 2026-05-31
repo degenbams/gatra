@@ -152,6 +152,7 @@ export function TransactionForm({
     setCategoryId("");
     setAmount("");
     setNote("");
+    router.refresh();
   }
 
   const messageClass =
