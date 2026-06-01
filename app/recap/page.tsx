@@ -4,6 +4,7 @@ import {
   type RecapPdfData,
 } from "@/components/export-recap-pdf-button";
 import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
+import { QuickTransactionButton } from "@/components/quick-entry-modal";
 import {
   buildCategoryLimitItems,
   getCategoryLimitTotals,
@@ -98,6 +99,11 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
   const selectedMonth = normalizeMonth(params.month, currentPeriod.month);
   const selectedYear = normalizeYear(params.year, currentPeriod.year);
   const { start, end } = getMonthDateRange(selectedMonth, selectedYear);
+  const todayISO = getJakartaTodayISO();
+  const quickEntryDate =
+    selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year
+      ? todayISO
+      : `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from(
     { length: 11 },
@@ -314,8 +320,13 @@ export default async function RecapPage({ searchParams }: RecapPageProps) {
             ) : null}
             {rows.length === 0 ? (
               <EmptyNotice
-                actionHref="/transactions/new"
-                actionLabel="Tambah Transaksi"
+                action={
+                  <QuickTransactionButton
+                    categories={categories ?? []}
+                    className="mt-4 flex h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-fit"
+                    initialDate={quickEntryDate}
+                  />
+                }
                 title="Belum ada transaksi"
                 description="Catat pengeluaran bulan ini supaya breakdown kategori dan tracking harian/mingguan mulai terisi."
               />
@@ -623,13 +634,15 @@ function SectionHeader({
 }
 
 function EmptyNotice({
+  action,
   actionHref,
   actionLabel,
   description,
   title,
 }: {
-  actionHref: string;
-  actionLabel: string;
+  action?: React.ReactNode;
+  actionHref?: string;
+  actionLabel?: string;
   description: string;
   title: string;
 }) {
@@ -637,12 +650,15 @@ function EmptyNotice({
     <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-[var(--shadow-soft)] sm:p-6">
       <h2 className="text-lg font-semibold text-blue-950">{title}</h2>
       <p className="mt-2 text-sm leading-6 text-blue-800">{description}</p>
-      <Link
-        className="mt-4 flex h-11 w-full items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-fit"
-        href={actionHref}
-      >
-        {actionLabel}
-      </Link>
+      {action ??
+        (actionHref && actionLabel ? (
+          <Link
+            className="mt-4 flex h-11 w-full items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-fit"
+            href={actionHref}
+          >
+            {actionLabel}
+          </Link>
+        ) : null)}
     </div>
   );
 }

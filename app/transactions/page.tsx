@@ -1,14 +1,16 @@
 import { AppNav } from "@/components/app-nav";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
+import { QuickTransactionButton } from "@/components/quick-entry-modal";
 import {
   getJakartaMonthYear,
+  getJakartaTodayISO,
   getMonthDateRange,
   getMonthLabel,
   monthOptions,
 } from "@/lib/date";
 import { formatDateID, formatRupiah } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import { ArrowLeft, Filter, Pencil, Plus, ReceiptText } from "lucide-react";
+import { ArrowLeft, Filter, Pencil, ReceiptText } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -60,20 +62,32 @@ export default async function TransactionsPage({
   const selectedMonth = normalizeMonth(params.month, currentPeriod.month);
   const selectedYear = normalizeYear(params.year, currentPeriod.year);
   const { start, end } = getMonthDateRange(selectedMonth, selectedYear);
+  const todayISO = getJakartaTodayISO();
+  const quickEntryDate =
+    selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year
+      ? todayISO
+      : `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from(
     { length: 11 },
     (_, index) => currentYear - 5 + index,
   );
 
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select("id, date, amount, note, categories(name, emoji)")
-    .eq("user_id", user.id)
-    .gte("date", start)
-    .lt("date", end)
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false });
+  const [{ data: transactions }, { data: categories }] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("id, date, amount, note, categories(name, emoji)")
+      .eq("user_id", user.id)
+      .gte("date", start)
+      .lt("date", end)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("categories")
+      .select("id, name, emoji, tracking_type")
+      .order("tracking_type")
+      .order("name"),
+  ]);
 
   const rows = ((transactions ?? []) as RawTransactionRow[]).map(
     normalizeTransactionRow,
@@ -101,13 +115,10 @@ export default async function TransactionsPage({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
-                href="/transactions/new"
-              >
-                <Plus className="size-4" />
-                Tambah Transaksi
-              </Link>
+              <QuickTransactionButton
+                categories={categories ?? []}
+                initialDate={quickEntryDate}
+              />
               <Link
                 className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 href="/dashboard"
@@ -193,13 +204,11 @@ export default async function TransactionsPage({
                 Catat pengeluaran pertama untuk periode ini agar dashboard bisa
                 menghitung status keuangan.
               </p>
-              <Link
-                className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
-                href="/transactions/new"
-              >
-                <Plus className="size-4" />
-                Tambah Transaksi
-              </Link>
+              <QuickTransactionButton
+                categories={categories ?? []}
+                className="mx-auto mt-5 flex h-11 w-full max-w-xs cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                initialDate={quickEntryDate}
+              />
             </div>
           ) : (
             <div className="mt-6 divide-y divide-[var(--border)]">

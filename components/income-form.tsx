@@ -23,7 +23,11 @@ type IncomeFormProps = {
     source: string;
   };
   mode?: "create" | "edit";
+  onCancel?: () => void;
+  onSaved?: () => void;
   returnHref?: string;
+  showBackLink?: boolean;
+  surface?: "card" | "plain";
 };
 
 type MessageTone = "error" | "success";
@@ -32,7 +36,11 @@ export function IncomeForm({
   initialDate,
   initialIncome,
   mode = "create",
+  onCancel,
+  onSaved,
   returnHref,
+  showBackLink = true,
+  surface = "card",
 }: IncomeFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -121,6 +129,7 @@ export function IncomeForm({
       setMessageTone("success");
       setMessage("Pemasukan tambahan berhasil diperbarui.");
       router.refresh();
+      onSaved?.();
       return;
     }
 
@@ -141,6 +150,7 @@ export function IncomeForm({
     setAmount("");
     setNote("");
     router.refresh();
+    onSaved?.();
   }
 
   const messageClass =
@@ -150,7 +160,11 @@ export function IncomeForm({
 
   return (
     <form
-      className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6"
+      className={
+        surface === "card"
+          ? "rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6"
+          : ""
+      }
       onSubmit={handleSubmit}
     >
       <div className="flex items-start gap-4">
@@ -246,13 +260,24 @@ export function IncomeForm({
               : "Simpan Pemasukan"}
         </button>
 
-        <Link
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
-          href={backHref}
-        >
-          <ArrowLeft className="size-5" />
-          {backLabel}
-        </Link>
+        {onCancel ? (
+          <button
+            className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
+            type="button"
+            onClick={onCancel}
+          >
+            <ArrowLeft className="size-5" />
+            Tutup
+          </button>
+        ) : showBackLink ? (
+          <Link
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
+            href={backHref}
+          >
+            <ArrowLeft className="size-5" />
+            {backLabel}
+          </Link>
+        ) : null}
       </div>
     </form>
   );

@@ -7,6 +7,10 @@ import {
 import { LogoutButton } from "@/components/logout-button";
 import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
 import {
+  QuickIncomeButton,
+  QuickTransactionButton,
+} from "@/components/quick-entry-modal";
+import {
   buildCategoryLimitItems,
   getCategoryLimitTotals,
   type CategoryLimitItem,
@@ -27,7 +31,6 @@ import {
   HandCoins,
   ListChecks,
   PiggyBank,
-  Plus,
   ReceiptText,
   Settings2,
   ShieldCheck,
@@ -186,20 +189,14 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
-              href="/transactions/new"
-            >
-              <Plus className="size-4" />
-              Tambah Transaksi
-            </Link>
-            <Link
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/income/new"
-            >
-              <HandCoins className="size-4" />
-              Tambah Pemasukan
-            </Link>
+            <QuickTransactionButton
+              categories={categories ?? []}
+              initialDate={todayISO}
+            />
+            <QuickIncomeButton
+              className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              initialDate={todayISO}
+            />
             <LogoutButton />
           </div>
         </header>
@@ -351,20 +348,15 @@ export default async function DashboardPage() {
               Akses halaman utama untuk mencatat transaksi, mengatur budget,
               dan membuka rekap bulanan.
             </p>
-            <Link
-              className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/transactions/new"
-            >
-              <Plus className="size-4" />
-              Tambah Transaksi
-            </Link>
-            <Link
-              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/income/new"
-            >
-              <HandCoins className="size-4" />
-              Tambah Pemasukan
-            </Link>
+            <QuickTransactionButton
+              categories={categories ?? []}
+              className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              initialDate={todayISO}
+            />
+            <QuickIncomeButton
+              className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              initialDate={todayISO}
+            />
             <Link
               className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
               href="/transactions"

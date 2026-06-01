@@ -1,14 +1,16 @@
 import { AppNav } from "@/components/app-nav";
 import { DeleteIncomeButton } from "@/components/delete-income-button";
+import { QuickIncomeButton } from "@/components/quick-entry-modal";
 import {
   getJakartaMonthYear,
+  getJakartaTodayISO,
   getMonthDateRange,
   getMonthLabel,
   monthOptions,
 } from "@/lib/date";
 import { formatDateID, formatRupiah } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import { ArrowLeft, Filter, HandCoins, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Filter, HandCoins, Pencil } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -42,6 +44,11 @@ export default async function IncomePage({ searchParams }: IncomePageProps) {
   const selectedMonth = normalizeMonth(params.month, currentPeriod.month);
   const selectedYear = normalizeYear(params.year, currentPeriod.year);
   const { start, end } = getMonthDateRange(selectedMonth, selectedYear);
+  const todayISO = getJakartaTodayISO();
+  const quickEntryDate =
+    selectedMonth === currentPeriod.month && selectedYear === currentPeriod.year
+      ? todayISO
+      : `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from(
     { length: 11 },
@@ -82,13 +89,7 @@ export default async function IncomePage({ searchParams }: IncomePageProps) {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
-                href="/income/new"
-              >
-                <Plus className="size-4" />
-                Tambah Pemasukan
-              </Link>
+              <QuickIncomeButton initialDate={quickEntryDate} />
               <Link
                 className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
                 href="/dashboard"
@@ -172,13 +173,10 @@ export default async function IncomePage({ searchParams }: IncomePageProps) {
                 Tambahkan pemasukan dari freelance, bonus, atau jualan supaya
                 total pemasukan dashboard lebih akurat.
               </p>
-              <Link
-                className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
-                href="/income/new"
-              >
-                <Plus className="size-4" />
-                Tambah Pemasukan
-              </Link>
+              <QuickIncomeButton
+                className="mx-auto mt-5 flex h-11 w-full max-w-xs cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                initialDate={quickEntryDate}
+              />
             </div>
           ) : (
             <div className="mt-6 divide-y divide-[var(--border)]">

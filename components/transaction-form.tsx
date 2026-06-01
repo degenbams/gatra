@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
-type CategoryOption = {
+export type CategoryOption = {
   emoji: string | null;
   id: string;
   name: string;
@@ -31,7 +31,11 @@ type TransactionFormProps = {
     note: string | null;
   };
   mode?: "create" | "edit";
+  onCancel?: () => void;
+  onSaved?: () => void;
   returnHref?: string;
+  showBackLink?: boolean;
+  surface?: "card" | "plain";
 };
 
 type MessageTone = "error" | "success";
@@ -41,7 +45,11 @@ export function TransactionForm({
   initialDate,
   initialTransaction,
   mode = "create",
+  onCancel,
+  onSaved,
   returnHref,
+  showBackLink = true,
+  surface = "card",
 }: TransactionFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -133,6 +141,7 @@ export function TransactionForm({
       setMessageTone("success");
       setMessage("Transaksi berhasil diperbarui.");
       router.refresh();
+      onSaved?.();
       return;
     }
 
@@ -153,6 +162,7 @@ export function TransactionForm({
     setAmount("");
     setNote("");
     router.refresh();
+    onSaved?.();
   }
 
   const messageClass =
@@ -162,7 +172,11 @@ export function TransactionForm({
 
   return (
     <form
-      className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6"
+      className={
+        surface === "card"
+          ? "rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6"
+          : ""
+      }
       onSubmit={handleSubmit}
     >
       <div className="flex items-start gap-4">
@@ -264,13 +278,24 @@ export function TransactionForm({
               : "Simpan Transaksi"}
         </button>
 
-        <Link
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
-          href={backHref}
-        >
-          <ArrowLeft className="size-5" />
-          {backLabel}
-        </Link>
+        {onCancel ? (
+          <button
+            className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
+            type="button"
+            onClick={onCancel}
+          >
+            <ArrowLeft className="size-5" />
+            Tutup
+          </button>
+        ) : showBackLink ? (
+          <Link
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
+            href={backHref}
+          >
+            <ArrowLeft className="size-5" />
+            {backLabel}
+          </Link>
+        ) : null}
       </div>
     </form>
   );
