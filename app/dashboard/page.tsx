@@ -7,10 +7,6 @@ import {
 import { LogoutButton } from "@/components/logout-button";
 import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
 import {
-  QuickIncomeButton,
-  QuickTransactionButton,
-} from "@/components/quick-entry-modal";
-import {
   buildCategoryLimitItems,
   getCategoryLimitTotals,
   type CategoryLimitItem,
@@ -31,6 +27,7 @@ import {
   HandCoins,
   ListChecks,
   PiggyBank,
+  Plus,
   ReceiptText,
   Settings2,
   ShieldCheck,
@@ -189,14 +186,13 @@ export default async function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <QuickTransactionButton
-              categories={categories ?? []}
-              initialDate={todayISO}
-            />
-            <QuickIncomeButton
-              className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              initialDate={todayISO}
-            />
+            <Link
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+              href="/transactions/new"
+            >
+              <Plus className="size-4" />
+              Tambah Transaksi
+            </Link>
             <LogoutButton />
           </div>
         </header>
@@ -210,8 +206,8 @@ export default async function DashboardPage() {
                 Budget {getMonthLabel(month)} {year} belum diatur
               </h2>
               <p className="mt-2 text-sm leading-6 text-blue-800">
-                Isi pemasukan utama dan target tabungan dulu supaya Gatra bisa
-                menghitung jatah aman, progress tabungan, dan status bulanan.
+                Isi pemasukan dan target tabungan dulu supaya dashboard bisa
+                mulai menghitung rekap bulanan.
               </p>
             </div>
             <Link
@@ -348,17 +344,8 @@ export default async function DashboardPage() {
               Akses halaman utama untuk mencatat transaksi, mengatur budget,
               dan membuka rekap bulanan.
             </p>
-            <QuickTransactionButton
-              categories={categories ?? []}
-              className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              initialDate={todayISO}
-            />
-            <QuickIncomeButton
-              className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              initialDate={todayISO}
-            />
             <Link
-              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
               href="/transactions"
             >
               <ReceiptText className="size-4" />
@@ -456,7 +443,7 @@ function DailySafeSpendPanel({
           <SafeSpendMetric label="Sisa hari ini" value={todayBalance} />
           <SafeSpendMetric
             label="Sisa hari bulan ini"
-            value={`${safeSpend.remainingDays} hari`}
+            value={`${safeSpend.remainingDaysAfterToday} hari`}
           />
           <SafeSpendMetric
             label="Jatah aman besok"
@@ -654,12 +641,6 @@ function CategoryLimitPanel({
             Isi limit Food, Dating, Lifestyle, dan kategori lain di halaman
             Budget supaya Gatra bisa menunjukkan kategori yang mulai bocor.
           </p>
-          <Link
-            className="mx-auto mt-5 flex h-11 w-full max-w-xs items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
-            href="/monthly-setup"
-          >
-            Atur Limit Kategori
-          </Link>
         </div>
       )}
     </section>
@@ -739,9 +720,7 @@ function StatCard({
         {icon}
       </div>
       <p className="mt-4 text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-1 break-words text-2xl font-semibold tabular-nums">
-        {value}
-      </p>
+      <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
@@ -783,7 +762,7 @@ type DailySafeSpend = {
   headline: string;
   label: string;
   nextDailyAllowance: number;
-  remainingDays: number;
+  remainingDaysAfterToday: number;
   todayRemaining: number;
   todaySpent: number;
   tone: "amber" | "blue" | "green" | "red" | "slate";
@@ -847,6 +826,7 @@ function getDailySafeSpend({
   totalIncome: number;
 }): DailySafeSpend {
   const safeRemainingDays = Math.max(remainingDays, 1);
+  const remainingDaysAfterToday = Math.max(safeRemainingDays - 1, 0);
   const previousExpense = Math.max(totalPengeluaran - pengeluaranHariIni, 0);
   const budgetBeforeToday = budgetBelanja - previousExpense;
   const dailyAllowance = Math.max(budgetBeforeToday / safeRemainingDays, 0);
@@ -864,7 +844,7 @@ function getDailySafeSpend({
       headline: "Budget bulanan belum diatur.",
       label: "Atur budget",
       nextDailyAllowance: 0,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining: 0,
       todaySpent: pengeluaranHariIni,
       tone: "slate",
@@ -879,7 +859,7 @@ function getDailySafeSpend({
       headline: "Pemasukan belum diisi.",
       label: "Belum aktif",
       nextDailyAllowance: 0,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining: -pengeluaranHariIni,
       todaySpent: pengeluaranHariIni,
       tone: "slate",
@@ -894,7 +874,7 @@ function getDailySafeSpend({
       headline: "Target tabungan terlalu ketat untuk bulan ini.",
       label: "Target berat",
       nextDailyAllowance: 0,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining: -pengeluaranHariIni,
       todaySpent: pengeluaranHariIni,
       tone: "red",
@@ -910,7 +890,7 @@ function getDailySafeSpend({
       headline: "Budget aman bulan ini sudah lewat.",
       label: "Lewat batas",
       nextDailyAllowance,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining,
       todaySpent: pengeluaranHariIni,
       tone: "red",
@@ -926,7 +906,7 @@ function getDailySafeSpend({
       headline: "Pengeluaran hari ini sudah melewati jatah aman.",
       label: "Lewat jatah",
       nextDailyAllowance,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining,
       todaySpent: pengeluaranHariIni,
       tone: "red",
@@ -941,7 +921,7 @@ function getDailySafeSpend({
       headline: "Jatah aman harian lagi ketat.",
       label: "Ketat",
       nextDailyAllowance,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining,
       todaySpent: pengeluaranHariIni,
       tone: "amber",
@@ -957,7 +937,7 @@ function getDailySafeSpend({
       headline: "Jatah hari ini hampir habis.",
       label: "Waspada",
       nextDailyAllowance,
-      remainingDays: safeRemainingDays,
+      remainingDaysAfterToday,
       todayRemaining,
       todaySpent: pengeluaranHariIni,
       tone: "amber",
@@ -972,7 +952,7 @@ function getDailySafeSpend({
     headline: "Ruang belanja hari ini masih aman.",
     label: "Aman",
     nextDailyAllowance,
-    remainingDays: safeRemainingDays,
+    remainingDaysAfterToday,
     todayRemaining,
     todaySpent: pengeluaranHariIni,
     tone: "green",
