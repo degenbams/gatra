@@ -19,7 +19,7 @@ type QuickTransactionButtonProps = QuickEntryButtonProps & {
 };
 
 const primaryButtonClass =
-  "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100";
+  "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100";
 
 export function QuickTransactionButton({
   categories,

@@ -229,7 +229,7 @@ export function TransactionForm({
         <label className="block sm:col-span-2">
           <span className="text-sm font-medium">Nominal pengeluaran</span>
           <input
-            className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
+            className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-500 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
             type="text"
             inputMode="numeric"
             pattern="[0-9.]*"
@@ -246,7 +246,7 @@ export function TransactionForm({
         <label className="block sm:col-span-2">
           <span className="text-sm font-medium">Catatan opsional</span>
           <textarea
-            className="mt-2 min-h-28 w-full resize-y rounded-xl border border-[var(--border)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
+            className="mt-2 min-h-28 w-full resize-y rounded-xl border border-[var(--border)] bg-white px-3 py-3 text-base outline-none transition placeholder:text-slate-500 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Contoh: makan siang, bensin, kopi sore..."
@@ -262,7 +262,7 @@ export function TransactionForm({
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <button
-          className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           type="submit"
           disabled={isSaving}
         >
