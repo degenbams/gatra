@@ -505,7 +505,7 @@ export function MonthlySetupForm({
           <label className="block">
             <span className="text-sm font-medium">Total pemasukan bulanan</span>
             <input
-              className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
+              className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-500 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
               type="text"
               inputMode="numeric"
               pattern="[0-9.]*"
@@ -524,7 +524,7 @@ export function MonthlySetupForm({
           <label className="block">
             <span className="text-sm font-medium">Target tabungan</span>
             <input
-              className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
+              className="mt-2 h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-500 focus:border-[var(--accent)] focus:ring-4 focus:ring-emerald-100"
               type="text"
               inputMode="numeric"
               pattern="[0-9.]*"
@@ -583,7 +583,7 @@ export function MonthlySetupForm({
                   </span>
                 </span>
                 <input
-                  className="mt-3 h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100"
+                  className="mt-3 h-11 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-base outline-none transition placeholder:text-slate-500 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100"
                   inputMode="numeric"
                   onChange={(event) =>
                     handleCategoryLimitChange(category.id, event.target.value)

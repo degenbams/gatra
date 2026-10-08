@@ -9,7 +9,6 @@ import { FormEvent, useState } from "react";
 
 export function RegisterForm() {
   const router = useRouter();
-  const supabase = createClient();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +27,11 @@ export function RegisterForm() {
     }
 
     setIsLoading(true);
+
+    // Created here, not during render: a browser Supabase client needs the
+    // public env vars, and creating it while the page prerenders would make
+    // the build depend on them.
+    const supabase = createClient();
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -83,10 +87,10 @@ export function RegisterForm() {
         <span className="text-sm font-medium text-[var(--foreground)]">
           Nama tampilan
         </span>
-        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--accent)] focus-within:ring-4 focus-within:ring-emerald-100">
+        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-blue-100">
           <User className="size-5 text-[var(--muted-foreground)]" />
           <input
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400"
+            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
             type="text"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
@@ -101,10 +105,10 @@ export function RegisterForm() {
         <span className="text-sm font-medium text-[var(--foreground)]">
           Email
         </span>
-        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--accent)] focus-within:ring-4 focus-within:ring-emerald-100">
+        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-blue-100">
           <Mail className="size-5 text-[var(--muted-foreground)]" />
           <input
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400"
+            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -119,10 +123,10 @@ export function RegisterForm() {
         <span className="text-sm font-medium text-[var(--foreground)]">
           Password
         </span>
-        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--accent)] focus-within:ring-4 focus-within:ring-emerald-100">
+        <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-blue-100">
           <Lock className="size-5 text-[var(--muted-foreground)]" />
           <input
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400"
+            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -147,7 +151,7 @@ export function RegisterForm() {
       ) : null}
 
       <button
-        className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
         type="submit"
         disabled={isLoading}
       >
@@ -157,7 +161,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-[var(--muted-foreground)]">
         Sudah punya akun?{" "}
-        <Link className="font-semibold text-[var(--accent)]" href="/login">
+        <Link className="font-semibold text-[var(--primary)]" href="/login">
           Masuk
         </Link>
       </p>

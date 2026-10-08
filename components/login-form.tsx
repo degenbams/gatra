@@ -10,7 +10,6 @@ import { FormEvent, useState } from "react";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -20,6 +19,11 @@ export function LoginForm() {
     event.preventDefault();
     setMessage("");
     setIsLoading(true);
+
+    // Created here, not during render: a browser Supabase client needs the
+    // public env vars, and creating it while the page prerenders would make
+    // the build depend on them.
+    const supabase = createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -51,7 +55,7 @@ export function LoginForm() {
         <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-blue-100">
           <Mail className="size-5 text-[var(--muted-foreground)]" />
           <input
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400"
+            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -69,7 +73,7 @@ export function LoginForm() {
         <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-3 transition focus-within:border-[var(--primary)] focus-within:ring-4 focus-within:ring-blue-100">
           <Lock className="size-5 text-[var(--muted-foreground)]" />
           <input
-            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400"
+            className="h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
