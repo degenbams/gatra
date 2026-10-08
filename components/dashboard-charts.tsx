@@ -146,7 +146,7 @@ export function DashboardCharts({
               tick={{ fill: "#64748b", fontSize: 12 }}
               tickFormatter={(value) => shortRupiah(Number(value))}
               tickLine={false}
-              width={56}
+              width={72}
             />
             <Tooltip
               formatter={(value) => [formatRupiah(Number(value)), "Pengeluaran"]}

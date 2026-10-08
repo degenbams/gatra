@@ -482,7 +482,7 @@ function StatStrip({
             {cell.label}
           </p>
           <p
-            className={`mt-1.5 break-words text-xl font-semibold tabular-nums ${cell.tone}`}
+            className={`mt-1.5 break-words text-base font-semibold tabular-nums sm:text-lg md:text-xl ${cell.tone}`}
           >
             {formatRupiah(cell.value)}
           </p>

@@ -101,7 +101,7 @@ export function DetailTabs({ labels, panels }: DetailTabsProps) {
       >
         {panels.map((panel, index) => (
           <div
-            className={`w-full shrink-0 snap-start md:w-auto md:shrink ${
+            className={`w-full shrink-0 snap-start md:w-auto md:shrink [&>section]:h-full ${
               index === 0 ? "md:col-span-2" : ""
             }`}
             key={labels[index] ?? index}
