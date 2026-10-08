@@ -4,6 +4,7 @@ import {
   type CategoryExpenseChartItem,
   type DailyExpenseChartItem,
 } from "@/components/dashboard-charts";
+import { DetailTabs } from "@/components/dashboard-detail-tabs";
 import { LogoutButton } from "@/components/logout-button";
 import { MonthlyInsightsPanel } from "@/components/monthly-insights-panel";
 import {
@@ -21,20 +22,7 @@ import {
 import { formatRupiah } from "@/lib/format";
 import { buildMonthlyInsights } from "@/lib/monthly-insights";
 import { createClient } from "@/lib/supabase/server";
-import {
-  BarChart3,
-  CalendarDays,
-  HandCoins,
-  ListChecks,
-  PiggyBank,
-  Plus,
-  ReceiptText,
-  Settings2,
-  ShieldCheck,
-  Target,
-  TrendingDown,
-  WalletCards,
-} from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -102,11 +90,6 @@ export default async function DashboardPage() {
     user.email?.split("@")[0] ||
     "Pengguna Gatra";
 
-  const trackingLabels: Record<string, string> = {
-    daily: "Harian",
-    weekly: "Mingguan",
-    monthly: "Bulanan",
-  };
   const transactionRows = ((transactions ?? []) as RawDashboardTransaction[]).map(
     normalizeDashboardTransaction,
   );
@@ -172,26 +155,30 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-[var(--foreground)] sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--primary)]">
-              Dashboard
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Halo, {displayName}
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Rekap keuanganmu, tersusun jelas.
+            <p className="mt-1.5 text-sm text-[var(--muted-foreground)]">
+              {periodLabel} · {remainingDays} hari lagi
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              href="/monthly-setup"
+            >
+              <Settings2 className="size-4" />
+              Atur budget
+            </Link>
+            <Link
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
               href="/transactions/new"
             >
               <Plus className="size-4" />
-              Tambah Transaksi
+              Tambah transaksi
             </Link>
             <LogoutButton />
           </div>
@@ -203,7 +190,7 @@ export default async function DashboardPage() {
           <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-[var(--shadow-soft)] sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-6">
             <div>
               <h2 className="text-lg font-semibold text-blue-950">
-                Budget {getMonthLabel(month)} {year} belum diatur
+                Budget {periodLabel} belum diatur
               </h2>
               <p className="mt-2 text-sm leading-6 text-blue-800">
                 Isi pemasukan dan target tabungan dulu supaya dashboard bisa
@@ -215,346 +202,86 @@ export default async function DashboardPage() {
               href="/monthly-setup"
             >
               <Settings2 className="size-5" />
-              Atur Budget Bulanan
+              Atur budget bulanan
             </Link>
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard
-            icon={<WalletCards className="size-5" />}
-            label="Pemasukan Utama"
-            value={formatRupiah(pemasukanUtama)}
-            tone="blue"
-          />
-          <StatCard
-            icon={<HandCoins className="size-5" />}
-            label="Pemasukan Tambahan"
-            value={formatRupiah(pemasukanTambahan)}
-            tone="green"
-          />
-          <StatCard
-            icon={<WalletCards className="size-5" />}
-            label="Total Pemasukan"
-            value={formatRupiah(totalIncome)}
-            tone="slate"
-          />
-        </section>
+        <AllowanceHero
+          budgetBelanja={budgetBelanja}
+          kategoriLabel={kategoriTerbesar.label}
+          remainingDays={remainingDays}
+          safeSpend={dailySafeSpend}
+          savingProgress={savingProgress}
+          savingTarget={savingTarget}
+          status={statusKeuangan}
+          totalIncome={totalIncome}
+          totalPengeluaran={totalPengeluaran}
+        />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            icon={<TrendingDown className="size-5" />}
-            label="Total Pengeluaran"
-            value={formatRupiah(totalPengeluaran)}
-            tone="red"
-          />
-          <StatCard
-            icon={<PiggyBank className="size-5" />}
-            label="Sisa Uang Saat Ini"
-            value={formatRupiah(savingAktual)}
-            tone={savingAktual >= savingTarget ? "green" : "amber"}
-          />
-          <StatCard
-            icon={<WalletCards className="size-5" />}
-            label="Sisa Budget Aman"
-            value={formatRupiah(sisaBudgetAman)}
-            tone={sisaBudgetAman >= 0 ? "blue" : "red"}
-          />
-        </section>
+        <StatStrip
+          savingAktual={savingAktual}
+          savingProgress={savingProgress}
+          savingTarget={savingTarget}
+          totalIncome={totalIncome}
+          totalPengeluaran={totalPengeluaran}
+          transactionCount={transactionCount}
+        />
 
-        <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <DailySafeSpendPanel safeSpend={dailySafeSpend} />
-
-          <SavingProgressPanel
-            progress={savingProgress}
-          />
-        </section>
-
-        <section className="grid gap-6">
-          <FinancialStatusPanel
-            budgetBelanja={budgetBelanja}
-            kategoriTerbesar={kategoriTerbesar}
-            statusKeuangan={statusKeuangan}
-            transactionCount={transactionCount}
-          />
-        </section>
+        <DetailTabs
+          labels={["Limit", "Kategori", "Pola"]}
+          panels={[
+            <LimitPanel
+              items={categoryLimitItems}
+              key="limit"
+              totals={categoryLimitTotals}
+            />,
+            <DashboardCharts
+              categoryData={categoryExpenseData}
+              dailyData={dailyExpenseData}
+              key="category"
+              view="category"
+            />,
+            <DashboardCharts
+              categoryData={categoryExpenseData}
+              dailyData={dailyExpenseData}
+              key="daily"
+              view="daily"
+            />,
+          ]}
+        />
 
         <MonthlyInsightsPanel
           insights={monthlyInsights}
           periodLabel={periodLabel}
         />
-
-        <CategoryLimitPanel
-          items={categoryLimitItems}
-          totals={categoryLimitTotals}
-        />
-
-        <DashboardCharts
-          categoryData={categoryExpenseData}
-          dailyData={dailyExpenseData}
-        />
-
-        <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  Kategori pengeluaran
-                </h2>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                  Kategori aktif untuk input dan analisis transaksi Gatra.
-                </p>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-                {categories?.length ?? 0} aktif
-              </span>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {categories?.map((category) => (
-                <div
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-slate-50 px-4 py-3"
-                  key={category.name}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
-                      {category.emoji}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">
-                        {category.name}
-                      </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        {trackingLabels[category.tracking_type] ??
-                          category.tracking_type}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <aside className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-[var(--primary)]">
-              <ShieldCheck className="size-6" />
-            </div>
-            <h2 className="mt-5 text-lg font-semibold">Kontrol cepat</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Akses halaman utama untuk mencatat transaksi, mengatur budget,
-              dan membuka rekap bulanan.
-            </p>
-            <Link
-              className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/transactions"
-            >
-              <ReceiptText className="size-4" />
-              Lihat Riwayat Transaksi
-            </Link>
-            <Link
-              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/income"
-            >
-              <HandCoins className="size-4" />
-              Lihat Pemasukan Tambahan
-            </Link>
-            <Link
-              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/recap"
-            >
-              <BarChart3 className="size-4" />
-              Lihat Rekap Bulanan
-            </Link>
-            <Link
-              className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              href="/monthly-setup"
-            >
-              <Settings2 className="size-4" />
-              Atur Budget Bulanan
-            </Link>
-          </aside>
-        </section>
       </div>
     </main>
   );
 }
 
-function DailySafeSpendPanel({
-  safeSpend,
-}: {
-  safeSpend: DailySafeSpend;
-}) {
-  const badgeClasses = {
-    amber: "bg-amber-50 text-amber-700 ring-amber-200",
-    blue: "bg-blue-50 text-blue-700 ring-blue-200",
-    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    red: "bg-red-50 text-red-700 ring-red-200",
-    slate: "bg-slate-100 text-slate-700 ring-slate-200",
-  }[safeSpend.tone];
-  const detailClasses = {
-    amber: "border-amber-200 bg-amber-50 text-amber-800",
-    blue: "border-blue-200 bg-blue-50 text-blue-800",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    red: "border-red-200 bg-red-50 text-red-800",
-    slate: "border-slate-200 bg-slate-50 text-slate-700",
-  }[safeSpend.tone];
-  const todayBalance =
-    safeSpend.todayRemaining >= 0
-      ? formatRupiah(safeSpend.todayRemaining)
-      : `Lewat ${formatRupiah(Math.abs(safeSpend.todayRemaining))}`;
-
-  return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)]">
-            <CalendarDays className="size-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold">Jatah aman hari ini</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Batas belanja harian supaya target tabungan tetap aman.
-          </p>
-        </div>
-        <span
-          className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${badgeClasses}`}
-        >
-          {safeSpend.label}
-        </span>
-      </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-2xl bg-slate-50 p-4">
-          <p className="text-sm font-medium text-[var(--muted-foreground)]">
-            Jatah aman
-          </p>
-          <p className="mt-2 break-words text-3xl font-semibold">
-            {formatRupiah(safeSpend.dailyAllowance)}
-          </p>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-            {safeSpend.headline}
-          </p>
-        </div>
-
-        <div className="grid gap-3">
-          <SafeSpendMetric
-            label="Pengeluaran hari ini"
-            value={formatRupiah(safeSpend.todaySpent)}
-          />
-          <SafeSpendMetric label="Sisa hari ini" value={todayBalance} />
-          <SafeSpendMetric
-            label="Sisa hari bulan ini"
-            value={`${safeSpend.remainingDaysAfterToday} hari`}
-          />
-          <SafeSpendMetric
-            label="Jatah aman besok"
-            value={formatRupiah(safeSpend.nextDailyAllowance)}
-          />
-        </div>
-      </div>
-
-      <p className={`mt-4 rounded-xl border px-4 py-3 text-sm ${detailClasses}`}>
-        {safeSpend.detail}
-      </p>
-    </section>
-  );
-}
-
-function SafeSpendMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border)] bg-white px-4 py-3">
-      <p className="text-xs font-medium text-[var(--muted-foreground)]">
-        {label}
-      </p>
-      <p className="mt-1 break-words text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function SavingProgressPanel({
-  progress,
-}: {
-  progress: SavingProgress;
-}) {
-  return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-[var(--accent)]">
-            <Target className="size-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold">Progress target tabungan</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Mengukur sisa uang saat ini dibanding target tabungan bulan ini.
-          </p>
-        </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
-          {progress.label}
-        </span>
-      </div>
-
-      {progress.isTargetSet ? (
-        <>
-          <div className="mt-6 h-3 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-[var(--accent)] transition-[width]"
-              style={{ width: `${progress.clampedPercent}%` }}
-            />
-          </div>
-          <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              {progress.headline}
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              {progress.detail}
-            </p>
-          </div>
-        </>
-      ) : (
-        <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          Target tabungan belum diatur. Isi target tabungan di halaman Budget.
-        </div>
-      )}
-    </section>
-  );
-}
-
-function FinancialStatusPanel({
+function AllowanceHero({
   budgetBelanja,
-  kategoriTerbesar,
-  statusKeuangan,
-  transactionCount,
+  kategoriLabel,
+  remainingDays,
+  safeSpend,
+  savingProgress,
+  savingTarget,
+  status,
+  totalIncome,
+  totalPengeluaran,
 }: {
   budgetBelanja: number;
-  kategoriTerbesar: ReturnType<typeof getTopCategory>;
-  statusKeuangan: FinancialStatus;
-  transactionCount: number;
+  kategoriLabel: string;
+  remainingDays: number;
+  safeSpend: DailySafeSpend;
+  savingProgress: SavingProgress;
+  savingTarget: number;
+  status: FinancialStatus;
+  totalIncome: number;
+  totalPengeluaran: number;
 }) {
-  return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)]">
-            <ShieldCheck className="size-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold">Status keuangan</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Dibaca dari budget belanja dan total pengeluaran bulan berjalan.
-          </p>
-        </div>
-        <FinancialStatusBadge status={statusKeuangan} />
-      </div>
-
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <MiniMetric label="Budget belanja" value={formatRupiah(budgetBelanja)} />
-        <MiniMetric label="Transaksi" value={String(transactionCount)} />
-        <MiniMetric label="Kategori terbesar" value={kategoriTerbesar.label} />
-      </div>
-    </section>
-  );
-}
-
-function FinancialStatusBadge({ status }: { status: FinancialStatus }) {
-  const classes = {
+  const statusClasses = {
     amber: "bg-amber-50 text-amber-700 ring-amber-200",
     blue: "bg-blue-50 text-blue-700 ring-blue-200",
     green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -562,16 +289,212 @@ function FinancialStatusBadge({ status }: { status: FinancialStatus }) {
     slate: "bg-slate-100 text-slate-700 ring-slate-200",
   }[status.tone];
 
+  const base = Math.max(totalIncome, 0);
+  const percentOf = (value: number) =>
+    base > 0 ? Math.min(Math.max((value / base) * 100, 0), 100) : 0;
+  const spentPercent = percentOf(totalPengeluaran);
+  const savingPercent = percentOf(savingTarget);
+  const restPercent = Math.max(100 - spentPercent - savingPercent, 0);
+  const ringPercent = savingProgress.isTargetSet
+    ? Math.min(Math.max(savingProgress.clampedPercent, 0), 100)
+    : 0;
+  const todayBalance =
+    safeSpend.todayRemaining >= 0
+      ? formatRupiah(safeSpend.todayRemaining)
+      : `Lewat ${formatRupiah(Math.abs(safeSpend.todayRemaining))}`;
+
   return (
-    <span
-      className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${classes}`}
-    >
-      {status.label}
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">
+            Jatah aman hari ini
+          </p>
+          <p className="mt-2 break-words text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+            {formatRupiah(safeSpend.dailyAllowance)}
+            <span className="ml-2 align-middle text-base font-medium text-[var(--muted-foreground)]">
+              / hari
+            </span>
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+            ({formatRupiah(totalIncome)} masuk &minus;{" "}
+            {formatRupiah(savingTarget)} tabungan &minus;{" "}
+            {formatRupiah(totalPengeluaran)} terpakai) &divide; {remainingDays}{" "}
+            hari sisa
+          </p>
+
+          <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+            <span
+              className="block h-full bg-[var(--foreground)]"
+              style={{ width: `${spentPercent}%` }}
+            />
+            <span
+              className="block h-full bg-[var(--accent)]"
+              style={{ width: `${savingPercent}%` }}
+            />
+            <span
+              className="block h-full bg-[var(--border)]"
+              style={{ width: `${restPercent}%` }}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[var(--muted-foreground)]">
+            <LegendDot
+              className="bg-[var(--foreground)]"
+              label={`Terpakai ${formatRupiah(totalPengeluaran)}`}
+            />
+            <LegendDot
+              className="bg-[var(--accent)]"
+              label={`Tabungan ${formatRupiah(savingTarget)}`}
+            />
+            <LegendDot
+              className="bg-[var(--border)]"
+              label={`Belum dijatah ${formatRupiah(Math.max(budgetBelanja - totalPengeluaran, 0))}`}
+            />
+          </div>
+
+          <p className="mt-4 text-xs text-[var(--muted-foreground)]">
+            Budget belanja {formatRupiah(budgetBelanja)} &middot; kategori
+            terbesar {kategoriLabel}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-4">
+          <div
+            className="grid size-28 shrink-0 place-items-center rounded-full"
+            style={{
+              background: `conic-gradient(var(--accent) 0 ${ringPercent}%, var(--border) ${ringPercent}% 100%)`,
+            }}
+          >
+            <div className="grid size-[86px] place-items-center rounded-full bg-white text-center">
+              <div>
+                <p className="text-xl font-semibold tabular-nums">
+                  {Math.round(ringPercent)}%
+                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                  tabungan
+                </p>
+              </div>
+            </div>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${statusClasses}`}
+          >
+            {status.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <MiniStat
+          label="Pengeluaran hari ini"
+          value={formatRupiah(safeSpend.todaySpent)}
+        />
+        <MiniStat label="Sisa hari ini" value={todayBalance} />
+        <MiniStat
+          label="Jatah aman besok"
+          value={formatRupiah(safeSpend.nextDailyAllowance)}
+        />
+      </div>
+
+      <p className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm leading-6 text-[var(--muted-foreground)]">
+        {safeSpend.detail}
+      </p>
+    </section>
+  );
+}
+
+function LegendDot({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className={`size-2 shrink-0 rounded-sm ${className}`} />
+      {label}
     </span>
   );
 }
 
-function CategoryLimitPanel({
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] px-4 py-3">
+      <p className="text-xs font-medium text-[var(--muted-foreground)]">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-semibold tabular-nums">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function StatStrip({
+  savingAktual,
+  savingProgress,
+  savingTarget,
+  totalIncome,
+  totalPengeluaran,
+  transactionCount,
+}: {
+  savingAktual: number;
+  savingProgress: SavingProgress;
+  savingTarget: number;
+  totalIncome: number;
+  totalPengeluaran: number;
+  transactionCount: number;
+}) {
+  const cells = [
+    {
+      label: "Pemasukan",
+      note: "utama + tambahan",
+      tone: "text-[var(--accent)]",
+      value: totalIncome,
+    },
+    {
+      label: "Pengeluaran",
+      note: `${transactionCount} transaksi`,
+      tone: "text-[var(--foreground)]",
+      value: totalPengeluaran,
+    },
+    {
+      label: "Sisa uang",
+      note: "di luar tabungan",
+      tone: savingAktual >= 0 ? "text-[var(--accent)]" : "text-red-700",
+      value: savingAktual,
+    },
+    {
+      label: "Target tabungan",
+      note: savingProgress.isTargetSet
+        ? `tercapai ${Math.round(savingProgress.clampedPercent)}%`
+        : "belum diatur",
+      tone: "text-[var(--foreground)]",
+      value: savingTarget,
+    },
+  ];
+
+  return (
+    <section className="grid grid-cols-2 overflow-hidden rounded-2xl border border-[var(--border)] bg-white md:grid-cols-4">
+      {cells.map((cell, index) => (
+        <div
+          className={`border-[var(--border)] p-4 sm:p-5 ${
+            index % 2 === 1 ? "border-l" : ""
+          } ${index >= 2 ? "border-t" : ""} md:border-t-0 md:border-l md:first:border-l-0`}
+          key={cell.label}
+        >
+          <p className="text-xs font-medium text-[var(--muted-foreground)]">
+            {cell.label}
+          </p>
+          <p
+            className={`mt-1.5 break-words text-base font-semibold tabular-nums sm:text-lg md:text-xl ${cell.tone}`}
+          >
+            {formatRupiah(cell.value)}
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            {cell.note}
+          </p>
+        </div>
+      ))}
+    </section>
+  );
+}
+function LimitPanel({
   items,
   totals,
 }: {
@@ -584,143 +507,106 @@ function CategoryLimitPanel({
       ? Math.min((totals.spentAmount / totals.limitAmount) * 100, 100)
       : 0;
 
+  if (!hasLimits) {
+    return (
+      <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
+        <h2 className="text-lg font-semibold">Limit per kategori</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+          Pantau kategori yang mendekati batas bulanan.
+        </p>
+        <div className="mt-5 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-6 text-center">
+          <p className="text-sm font-semibold">Limit kategori belum diatur.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
+            Isi limit kategori di halaman Budget supaya Gatra bisa menunjukkan
+            kategori yang mulai bocor.
+          </p>
+          <Link
+            className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            href="/monthly-setup"
+          >
+            Atur limit
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)]">
-            <ListChecks className="size-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold">Limit per kategori</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Pantau kategori yang mendekati batas bulanan.
+          <h2 className="text-lg font-semibold">Limit per kategori</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            {formatRupiah(totals.spentAmount)} dari{" "}
+            {formatRupiah(totals.limitAmount)} terpakai
           </p>
         </div>
         <Link
-          className="flex h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+          className="flex h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
           href="/monthly-setup"
         >
-          Atur Limit
+          Atur limit
         </Link>
       </div>
 
-      {hasLimits ? (
-        <>
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-[var(--muted-foreground)]">
-                  Total limit terpakai
-                </p>
-                <p className="mt-1 text-2xl font-semibold">
-                  {formatRupiah(totals.spentAmount)}
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-[var(--muted-foreground)]">
-                dari {formatRupiah(totals.limitAmount)}
-              </p>
-            </div>
-            <div className="mt-4 h-2 rounded-full bg-white">
-              <div
-                className="h-2 rounded-full bg-[var(--primary)]"
-                style={{ width: `${totalPercent}%` }}
-              />
-            </div>
-          </div>
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+        <span
+          className="block h-full bg-[var(--primary)]"
+          style={{ width: `${totalPercent}%` }}
+        />
+      </div>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-2">
-            {items.slice(0, 6).map((item) => (
-              <CategoryLimitRow item={item} key={item.categoryId} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50 p-6 text-center">
-          <p className="text-sm font-semibold">Limit kategori belum diatur.</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted-foreground)]">
-            Isi limit Food, Dating, Lifestyle, dan kategori lain di halaman
-            Budget supaya Gatra bisa menunjukkan kategori yang mulai bocor.
-          </p>
-        </div>
-      )}
+      <div className="mt-4">
+        {items.slice(0, 6).map((item) => (
+          <LimitRow item={item} key={item.categoryId} />
+        ))}
+      </div>
     </section>
   );
 }
 
-function CategoryLimitRow({ item }: { item: CategoryLimitItem }) {
-  const toneClasses = {
+function LimitRow({ item }: { item: CategoryLimitItem }) {
+  const barTone =
+    item.tone === "red"
+      ? "bg-red-600"
+      : item.tone === "amber"
+        ? "bg-amber-500"
+        : "bg-[var(--accent)]";
+  const badgeTone = {
     amber: "bg-amber-50 text-amber-700 ring-amber-200",
     blue: "bg-blue-50 text-blue-700 ring-blue-200",
     green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     red: "bg-red-50 text-red-700 ring-red-200",
     slate: "bg-slate-100 text-slate-700 ring-slate-200",
   }[item.tone];
+  const percent = Math.min(Math.max(item.percent, 0), 100);
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{item.label}</p>
-          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            {formatRupiah(item.spentAmount)} dari {formatRupiah(item.limitAmount)}
-          </p>
-        </div>
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${toneClasses}`}
-        >
-          {item.statusLabel}
-        </span>
+    <div className="grid gap-x-4 gap-y-2 border-b border-[var(--border)] py-3.5 last:border-0 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex min-w-0 items-center gap-2">
+        <p className="truncate text-sm font-semibold">{item.label}</p>
+        {item.tone === "red" ? (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${badgeTone}`}
+          >
+            {item.statusLabel}
+          </span>
+        ) : null}
       </div>
-      <div className="mt-4 h-2 rounded-full bg-slate-100">
-        <div
-          className={`h-2 rounded-full ${item.tone === "red" ? "bg-red-500" : "bg-[var(--accent)]"}`}
-          style={{ width: `${Math.min(item.percent, 100)}%` }}
+
+      <div className="order-3 h-2 overflow-hidden rounded-full bg-[var(--surface-subtle)] sm:order-none">
+        <span
+          className={`block h-full rounded-full ${barTone}`}
+          style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-        Sisa {formatRupiah(Math.max(item.remainingAmount, 0))}
+
+      <p className="text-left text-sm font-semibold tabular-nums sm:text-right">
+        {formatRupiah(item.spentAmount)}
+        <span className="block text-xs font-medium text-[var(--muted-foreground)]">
+          dari {formatRupiah(item.limitAmount)}
+        </span>
       </p>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-t border-[var(--border)] pt-3">
-      <p className="text-xs font-medium text-[var(--muted-foreground)]">
-        {label}
-      </p>
-      <p className="mt-1 break-words text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tone: "amber" | "blue" | "green" | "red" | "slate";
-}) {
-  const tones = {
-    amber: "bg-amber-50 text-amber-700",
-    blue: "bg-blue-50 text-blue-700",
-    green: "bg-emerald-50 text-emerald-700",
-    red: "bg-red-50 text-red-700",
-    slate: "bg-slate-100 text-slate-700",
-  };
-
-  return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-soft)]">
-      <div className={`flex size-11 items-center justify-center rounded-xl ${tones[tone]}`}>
-        {icon}
-      </div>
-      <p className="mt-4 text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
