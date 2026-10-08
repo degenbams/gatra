@@ -10,7 +10,6 @@ import { FormEvent, useState } from "react";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -20,6 +19,11 @@ export function LoginForm() {
     event.preventDefault();
     setMessage("");
     setIsLoading(true);
+
+    // Created here, not during render: a browser Supabase client needs the
+    // public env vars, and creating it while the page prerenders would make
+    // the build depend on them.
+    const supabase = createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,

@@ -7,11 +7,12 @@ import { useState } from "react";
 
 export function LogoutButton() {
   const router = useRouter();
-  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogout() {
     setIsLoading(true);
+    // Created on demand so rendering the page never needs the Supabase env vars.
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
